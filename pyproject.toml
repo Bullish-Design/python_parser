@@ -1,0 +1,9 @@
+[project]
+name = "python_parser"
+dynamic = ["version", "dependencies"]
+
+[project.scripts]
+# main = "python_parser.src.main"
+
+[tool.setuptools.dynamic]
+dependencies = { file = "requirements.txt" }
