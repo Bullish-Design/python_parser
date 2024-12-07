@@ -2,6 +2,7 @@
 .devenv*
 devenv.local.nix
 devenv.lock
+*devenv.lock
 
 # direnv
 .direnv
