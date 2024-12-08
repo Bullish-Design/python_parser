@@ -7,6 +7,7 @@ main = "python_parser.src.main:main"
 test-parse = "python_parser.src.parser:parse_models_directory"
 test-parse-file = "python_parser.src.parser:parse_test_file"
 misc-parse = "python_parser.src.parser:parse_misc"
+test-fun = "python_parser.src.parse_content:test_function"
 
 [tool.setuptools.dynamic]
 dependencies = { file = "requirements.txt" }
