@@ -1,13 +1,54 @@
 # Imports -----------------------------------------------
 import re
 from typing import ClassVar
-from python_parser.src.base import MarkdownModel
+from parsy import Parser
+from python_parser.src.base import (
+    # MarkdownModel,
+    ParserBase,
+    GeneratorBase,
+    ParserGereratorBase,
+)
+from python_parser.src.parse_primitives import (
+    delimiter,
+    frontmatter_content,
+    content,
+    lines_parser,
+    newline,
+    obsidian_start,
+    indent,
+    lexeme,
+    whitespace,
+    word,
+)
+from python_parser.src.parser import basic_markdown_parser
+
+# Constants ---------------------------------------------
+
+
 
 
 # Classes -----------------------------------------------
 
+class MarkdownParser(ParserBase):
+    """
+    Base parser for Markdown parsing.
+    """
 
-class ExampleModel(MarkdownModel):
+    file_type: str = "md"
+    parser: Parser = basic_markdown_parser
+
+    @classmethod
+    def parse(cls, text: str) -> GeneratorBase:
+        """
+        Parse the text and return a MarkdownModel object.
+        """
+        match = cls.pattern.search(text)
+        if match:
+            return MarkdownModel(content=match.group("content"))
+        else:
+            raise ValueError("No match found")"
+
+class MarkdownBase(ParserGereratorBase):
     """
     Example model representing a specific Markdown structure.
     """
@@ -18,25 +59,3 @@ class ExampleModel(MarkdownModel):
     )
 
     content: str
-
-    @classmethod
-    def from_markdown(cls, markdown: str):
-        """
-        Parses markdown and initializes the ExampleModel.
-        """
-        match = cls.pattern.search(markdown)
-        if not match:
-            raise ValueError("Markdown does not match ExampleModel pattern.")
-        return cls(content=match.group("content"))
-
-    def to_html(self):
-        """
-        Converts the model instance to HTML format.
-        """
-        return f"<h1>Example Header</h1>\n<p>Content: {self.content}</p>"
-
-    def to_json(self):
-        """
-        Converts the model instance to JSON format.
-        """
-        return self.json()

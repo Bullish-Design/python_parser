@@ -52,7 +52,7 @@ list_property_val = (
     indent >> parsy.string("-") >> parsy.whitespace >> parsy.string << newline
 )
 # Full parser for the Obsidian Markdown file
-frontmatter_parser = parsy.seq(
+basic_markdown_parser = parsy.seq(
     frontmatter_delim.skip(newline)
     >> frontmatter_content,  # .map(lambda x: x.strip().split("\n")),
     frontmatter_delim.skip(newline)
@@ -61,20 +61,8 @@ frontmatter_parser = parsy.seq(
 # Functions -----------------------------------------
 
 
-def parse_misc(file_str: str):
-    test_str = markdown_file_content
-    result = frontmatter_parser.parse(test_str)  # separator.parse(str)
-    count = 0
-
-    parsed_frontmatter = yaml.safe_load(result[0]) or {}
-    frontmatter = parse_frontmatter(parsed_frontmatter)
-    print(f"\n**Frontmatter [{type(frontmatter).__qualname__}] **")
-    for parameter in frontmatter.parameters:
-        print(
-            f"    {parameter.name}: ({type(parameter.value).__qualname__})  =  {parameter.value}"
-        )
-
-    return
+def parse_misc():
+    pass
 
 
 def parse_frontmatter(frontmatter_dict: Dict) -> ObsidianFrontmatter:
@@ -113,7 +101,7 @@ def parse_obsidian_markdown(markdown_text: str) -> ObsidianFile:
     """
     try:
         # Parse the markdown text to extract frontmatter and content
-        frontmatter_str, content_str = frontmatter_parser.parse(markdown_text)
+        frontmatter_str, content_str = basic_markdown_parser.parse(markdown_text)
 
         frontmatter = yaml.safe_load(frontmatter_str) or {}
         print(f"\n**Frontmatter **\n\n{frontmatter}\n")

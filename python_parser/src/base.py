@@ -60,7 +60,6 @@ class ParserBase(BaseModel, ABC):
     file_type: str
     parser: Parser
 
-    @classmethod
     @abstractmethod
     def parse(self, file_contents: str) -> Any:
         """
@@ -89,30 +88,40 @@ class GeneratorBase(BaseModel, ABC):
         return "Not Implemented"
 
 
-class MarkdownModel(BaseModel, ABC):
+class ParsedTree(BaseModel):
     """
-    Abstract base class for all Markdown models.
+    Pydantic model for the parsed tree of a file.
+
+    Serves as the "data shape" for the file. The parsed tree is a nested
+        structure that represents the file contents in a structured format,
+        for use in generating other file types.
+
     """
 
-    # Each subclass must define its own regex pattern
-    parser: ClassVar[Parser]
+    pass
 
-    @classmethod
-    @abstractmethod
-    def parse_from(cls, file_path: str) -> None:
-        """
-        Parses markdown string and returns an instance of the model.
-        """
-        file_type = file_path.split(".")[-1]
-        with open(file_path, "r") as file:
-            file_contents = file.read()
-        result = cls.parser.parse(file_contents)
-        return result
-        # return f"Not Implemented for {cls.__name__}"
+
+class ParserGereratorBase(BaseModel, ABC):
+    """
+    Abstract base class for a parser/generator type.
+
+    Inclides a list of ParserBase and GeneratorBase subclasses that can be used to parse and generate files of the given type.
+    """
+
+    data_type: str
+    parsers: List[ParserBase]
+    generators: List[GeneratorBase]
 
     @abstractmethod
-    def generate_to(self, to_type: str, **kwargs) -> str:
+    def parse(self, file_contents: str) -> Any:
         """
-        Converts the model instance to another format.
+        Parses the file contents and returns the result.
         """
-        return f"Not Implemented for {format_type}"
+        return "Not Implemented"
+
+    @abstractmethod
+    def generate(self, **kwargs) -> str:
+        """
+        Generates the file contents and returns the result.
+        """
+        return "Not Implemented"
