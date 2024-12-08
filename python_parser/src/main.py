@@ -4,7 +4,7 @@ import os
 from python_parser.src.parser import parse_obsidian_markdown, parse_model_directory
 from python_parser.src.config import TEST_DIR
 from python_parser.src.models import MarkdownParser
-from python_parser.src.parse_content import document
+from python_parser.src.parse_content import document, block, line
 
 # file_objs = parse_model_directory(TEST_DIR)
 
