@@ -1,4 +1,6 @@
-
+---
+{frontmatter_content}
+---
 outside text
 # Header 1
 header1 text

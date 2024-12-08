@@ -116,7 +116,7 @@ def parse_obsidian_markdown(markdown_text: str) -> ObsidianFile:
         frontmatter_str, content_str = frontmatter_parser.parse(markdown_text)
 
         frontmatter = yaml.safe_load(frontmatter_str) or {}
-
+        print(f"\n**Frontmatter **\n\n{frontmatter}\n")
         frontmatter = parse_frontmatter(frontmatter)
         obsidian_file = ObsidianFile(frontmatter=frontmatter, content=content_str)
         return obsidian_file

@@ -4,7 +4,7 @@ import re
 from abc import ABC, abstractmethod
 from typing import ClassVar, Optional, List, Any, Dict
 from pydantic import BaseModel
-
+from parsy import Parser
 
 # BaseModel ---------------------------------------
 
@@ -14,7 +14,7 @@ class ObsidianFrontmatterParameter(BaseModel):
     Pydantic model for the frontmatter properties of a Markdown file.
     """
 
-    name: str
+    name: str = ""
     value: Optional[str | List[str]]
 
 
@@ -26,12 +26,14 @@ class ObsidianFrontmatter(BaseModel):
     parameters: List[ObsidianFrontmatterParameter] = []
 
     def __str__(self) -> str:
-        return_str = "Parameters:"
+        return_str = "---"
         if len(self.parameters) == 0:
-            return_str += " None"
+            return_str += "\nNone"
+            return_str += "\n---"
         else:
             for parameter in self.parameters:
-                return_str += f"\n    {parameter.name}: {parameter.value}"
+                return_str += f"\n{parameter.name}: {parameter.value}"
+            return_str += "\n---"
         return return_str
 
 
@@ -43,6 +45,49 @@ class ObsidianFile(BaseModel):
     frontmatter: ObsidianFrontmatter
     content: str
 
+    def __str__(self) -> str:
+        return_str = "\nObsidian File:\n"
+        return_str += f"\n{self.frontmatter}"
+        return_str += f"\n{self.content}\n"
+        return return_str
+
+
+class ParserBase(BaseModel, ABC):
+    """
+    Abstract base class for a parser.
+    """
+
+    file_type: str
+    parser: Parser
+
+    @classmethod
+    @abstractmethod
+    def parse(self, file_contents: str) -> Any:
+        """
+        Parses the file contents and returns the result.
+        """
+        return self.parser.parse(file_contents)
+
+    # @classmethod
+    # @abstractmethod
+    # def
+    # Each subclass must define
+
+
+class GeneratorBase(BaseModel, ABC):
+    """
+    Abstract base class for a generator.
+    """
+
+    file_type: str
+
+    @abstractmethod
+    def generate(self, **kwargs) -> str:
+        """
+        Generates the file contents and returns the result.
+        """
+        return "Not Implemented"
+
 
 class MarkdownModel(BaseModel, ABC):
     """
@@ -50,18 +95,23 @@ class MarkdownModel(BaseModel, ABC):
     """
 
     # Each subclass must define its own regex pattern
-    pattern: ClassVar[re.Pattern]
+    parser: ClassVar[Parser]
 
     @classmethod
     @abstractmethod
-    def from_markdown(cls, markdown: str) -> None:
+    def parse_from(cls, file_path: str) -> None:
         """
         Parses markdown string and returns an instance of the model.
         """
-        return f"Not Implemented for {cls.__name__}"
+        file_type = file_path.split(".")[-1]
+        with open(file_path, "r") as file:
+            file_contents = file.read()
+        result = cls.parser.parse(file_contents)
+        return result
+        # return f"Not Implemented for {cls.__name__}"
 
     @abstractmethod
-    def to_format(self, format_type, **kwargs) -> str:
+    def generate_to(self, to_type: str, **kwargs) -> str:
         """
         Converts the model instance to another format.
         """
