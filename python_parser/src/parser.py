@@ -4,7 +4,7 @@ import re
 import yaml
 from typing import Tuple, Dict, List
 import parsy
-from parsy import regex, string
+from parsy import regex, string, generate
 
 # Module Imports ------------------------------------
 from python_parser.src.base import (
@@ -25,6 +25,7 @@ from python_parser.src.parse_primitives import (
     newline,
     obsidian_start,
     indent,
+    line,
 )
 
 # Constants -----------------------------------------
@@ -49,6 +50,7 @@ This is a sample Obsidian Markdown file.
 """
 
 frontmatter_delim = obsidian_start.desc("Obsidian File Opening Delimiter")
+bullet = (parsy.string("-") >> parsy.whitespace >> line).desc("Bullet")
 list_property_val = (
     indent >> parsy.string("-") >> parsy.whitespace >> parsy.string << newline
 )
@@ -59,6 +61,13 @@ basic_markdown_parser = parsy.seq(
     frontmatter_delim.skip(newline)
     >> content,  # .map(lambda x: x.strip().split("\n")),
 )
+
+
+@generate
+def parse_content():
+    pass
+
+
 # Functions -----------------------------------------
 
 

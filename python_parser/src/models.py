@@ -3,7 +3,7 @@ import re
 from abc import ABC, abstractmethod
 import yaml
 from typing import ClassVar, Any
-from parsy import Parser
+from parsy import Parser, generate
 from python_parser.src.base import (
     # MarkdownModel,
     ParserBase,
@@ -55,7 +55,7 @@ class FrontmatterParser(ParserBase):
 
 class MarkdownParser(ParserBase):
     """
-    Base parser for Markdown parsing.
+    Base level parser for Markdown parsing - Splits file into parsed frontmatter and rest of the file content.
     """
 
     file_type: str = "md"
@@ -73,6 +73,9 @@ class MarkdownParser(ParserBase):
             content=parsed_results[1],
         )
         return processed_results
+
+
+# Class to parse Markdown content into python code block objects
 
 
 class MarkdownBase(ParserGereratorBase):
