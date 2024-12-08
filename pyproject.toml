@@ -3,7 +3,10 @@ name = "python_parser"
 dynamic = ["version", "dependencies"]
 
 [project.scripts]
-# main = "python_parser.src.main"
+main = "python_parser.src.main"
+test-parse = "python_parser.src.parser:parse_models_directory"
+test-parse-file = "python_parser.src.parser:parse_test_file"
+misc-parse = "python_parser.src.parser:parse_misc"
 
 [tool.setuptools.dynamic]
 dependencies = { file = "requirements.txt" }
