@@ -9,7 +9,16 @@ from parsy import Parser
 # BaseModel ---------------------------------------
 
 
-class ObsidianFrontmatterParameter(BaseModel):
+class ParsyBase(BaseModel):
+    """
+    Base Pydantic model for creating parsers. Sets configs for everything else.
+    """
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
+class ObsidianFrontmatterParameter(ParsyBase):
     """
     Pydantic model for the frontmatter properties of a Markdown file.
     """
@@ -18,7 +27,7 @@ class ObsidianFrontmatterParameter(BaseModel):
     value: Optional[str | List[str]]
 
 
-class ObsidianFrontmatter(BaseModel):
+class ObsidianFrontmatter(ParsyBase):
     """
     Pydantic model for the frontmatter of a Markdown file.
     """
@@ -37,7 +46,7 @@ class ObsidianFrontmatter(BaseModel):
         return return_str
 
 
-class ObsidianFile(BaseModel):
+class ObsidianFile(ParsyBase):
     """
     Base Pydantic model for an Obsidian Markdown file.
     """
@@ -52,7 +61,7 @@ class ObsidianFile(BaseModel):
         return return_str
 
 
-class ParserBase(BaseModel, ABC):
+class ParserBase(ParsyBase, ABC):
     """
     Abstract base class for a parser.
     """
@@ -60,12 +69,36 @@ class ParserBase(BaseModel, ABC):
     file_type: str
     parser: Parser
 
-    @abstractmethod
-    def parse(self, file_contents: str) -> Any:
+    @classmethod
+    def parse(cls, file_path: str):
+        """
+        Parses the file contents and returns the result. Checks to see if the file type matches the parser's file type.
+        """
+        # Check if the file type matches the parser's file type
+        self = cls()
+        if file_path.endswith(self.file_type):
+            with open(file_path, "r") as file:
+                file_contents = file.read()
+            parsed_results = cls.parse_function(file_contents)
+            processed_results = cls.process_results(parsed_results)
+            return processed_results
+        else:
+            return "File type does not match parser type"
+
+    @classmethod
+    def parse_function(cls, file_contents: str) -> Any:
         """
         Parses the file contents and returns the result.
         """
+        self = cls()
         return self.parser.parse(file_contents)
+
+    @abstractmethod
+    def process_results(parsed_results: Any) -> Any:
+        """
+        Processes the parsed results and returns the result.
+        """
+        return parsed_results
 
     # @classmethod
     # @abstractmethod
@@ -73,7 +106,7 @@ class ParserBase(BaseModel, ABC):
     # Each subclass must define
 
 
-class GeneratorBase(BaseModel, ABC):
+class GeneratorBase(ParsyBase, ABC):
     """
     Abstract base class for a generator.
     """
@@ -88,7 +121,7 @@ class GeneratorBase(BaseModel, ABC):
         return "Not Implemented"
 
 
-class ParsedTree(BaseModel):
+class ParsedTree(ParsyBase):
     """
     Pydantic model for the parsed tree of a file.
 
@@ -101,7 +134,7 @@ class ParsedTree(BaseModel):
     pass
 
 
-class ParserGereratorBase(BaseModel, ABC):
+class ParserGereratorBase(ParsyBase, ABC):
     """
     Abstract base class for a parser/generator type.
 

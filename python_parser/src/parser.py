@@ -8,12 +8,13 @@ from parsy import regex, string
 
 # Module Imports ------------------------------------
 from python_parser.src.base import (
-    MarkdownModel,
+    # MarkdownModel,
     ObsidianFrontmatterParameter,
     ObsidianFrontmatter,
     ObsidianFile,
 )
 from python_parser.src.config import MD_MODEL_DIR
+
 
 # Parsing Primitives --------------------------------
 from python_parser.src.parse_primitives import (
