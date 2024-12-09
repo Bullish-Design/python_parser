@@ -1,5 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
+from os import close
 from typing import List, Optional, Union
 from parsy import (
     generate,
@@ -9,25 +10,15 @@ from parsy import (
     whitespace,
     forward_declaration,
     eof,
+    Parser,
 )
-from python_parser.src.parse_primitives import newline, whitespace
+import yaml
+
 
 # --- AST Node Definitions ---
-
-
 @dataclass
 class Text:
     content: str
-
-
-@dataclass
-class Bold:
-    content: List["MarkdownNode"]
-
-
-@dataclass
-class Italic:
-    content: List["MarkdownNode"]
 
 
 @dataclass
@@ -61,20 +52,13 @@ class Tag:
 @dataclass
 class Header:
     level: int
-    content: List["MarkdownNode"]
-
-
-@dataclass
-class ListItem:
-    content: List["MarkdownNode"]
-    indent_level: int
-    is_ordered: bool
+    content: str
 
 
 @dataclass
 class Callout:
     type: str
-    content: List[List["MarkdownNode"]]
+    content: List[str]
 
 
 @dataclass
@@ -84,93 +68,51 @@ class FrontMatter:
 
 @dataclass
 class Paragraph:
-    content: List["MarkdownNode"]
+    content: str
+
+
+# --- AST Node Definitions ---
+@dataclass
+class FrontMatter:
+    content: Dict[str, Any]
 
 
 MarkdownNode = Union[
+    FrontMatter,
     Text,
-    Bold,
-    Italic,
     InlineCode,
     CodeBlock,
     WikiLink,
     ExternalLink,
     Tag,
     Header,
-    ListItem,
     Callout,
     FrontMatter,
     Paragraph,
 ]
 
-# --- Basic Parser Building Blocks ---
 
-# Whitespace
+@dataclass
+class ObsidianMarkdownContent:
+    nodes: List[MarkdownNode]
+
+
+# --- Basic Parser Building Blocks ---
 space = regex(r"[ \t]")
 spaces = space.many()
 newline = string("\n")
 blank_line = regex(r"[ \t]*\n")
-whitespace = regex(r"[ \t\n]+")
-
-# Basic text building blocks
-word = regex(r"[A-Za-z0-9]+")
-punctuation = regex(r"[.,!?;:]+")
-plain_text = regex(r"[^*`#\[\]\n\\]+").map(Text)
-
-# Inline formatting markers
-asterisk = string("*")
-backtick = string("`")
-underscore = string("_")
-hash_sign = string("#")
-
-# Link markers
-open_bracket = string("[")
-close_bracket = string("]")
-open_paren = string("(")
-close_paren = string(")")
-
-# --- Content Parsers (to avoid recursion) ---
-
-
-@generate
-def bold_content():
-    """Parser for content inside bold markers"""
-    return (plain_text | inline_code | wiki_link | external_link | tag).many()
-
-
-@generate
-def italic_content():
-    """Parser for content inside italic markers"""
-    return (plain_text | inline_code | wiki_link | external_link | tag).many()
+optional_spaces = regex(r"[ \t]*")
+whitespace_char = regex(r"[ \t\n]")
+whitespace_chars = whitespace_char.many()
 
 
 # --- Inline Parsers ---
-
-
-@generate
-def bold():
-    """Parser for bold text (**bold** or __bold__)"""
-    marker = yield string("**") | string("__")
-    content = yield bold_content
-    end_marker = yield string("**") if marker == "**" else string("__")
-    return Bold(content)
-
-
-@generate
-def italic():
-    """Parser for italic text (*italic* or _italic_)"""
-    marker = yield string("*") | string("_")
-    content = yield italic_content
-    end_marker = yield string("*") if marker == "*" else string("_")
-    return Italic(content)
-
-
 @generate
 def inline_code():
-    """Parser for inline code (`code`)"""
-    yield backtick
+    yield string("`")
     content = yield regex(r"[^`]+")
-    yield backtick
+    yield string("`")
     return InlineCode(content)
 
 
@@ -178,26 +120,26 @@ def inline_code():
 def wiki_link():
     """Parser for Obsidian wiki links ([[page]] or [[page|alias]])"""
     yield string("[[")
-    target = yield regex(r"[^\]\|]+")
-    alias = yield (string("|") >> regex(r"[^\]]+").desc("alias")).optional()
+    target = yield regex(r"[^\]\|]+").map(str.strip)
+    alias_parser = (string("|") >> regex(r"[^\]]+").map(str.strip)).optional()
+    alias = yield alias_parser
     yield string("]]")
     return WikiLink(target, alias)
 
 
 @generate
 def external_link():
-    """Parser for markdown links [text](url)"""
-    yield open_bracket
+    yield string("[")
     text = yield regex(r"[^\]]+")
-    yield close_bracket + open_paren
+    yield string("]")
+    yield string("(")
     url = yield regex(r"[^)]+")
-    yield close_paren
+    yield string(")")
     return ExternalLink(url, text)
 
 
 @generate
 def tag():
-    """Parser for Obsidian tags (#tag)"""
     yield string("#")
     name = yield regex(r"[A-Za-z0-9/_-]+")
     return Tag(name)
@@ -207,73 +149,247 @@ def tag():
 
 
 @generate
+def front_matter():
+    """Parser for YAML front matter with proper YAML parsing"""
+    yield string("---")
+    yield newline
+
+    # Collect all lines until closing delimiter
+    lines = []
+    while True:
+        line = yield regex(r"[^\n]*")
+        yield newline
+        if line.strip() == "---":
+            break
+        lines.append(line)
+
+    # Join lines and parse as YAML
+    yaml_content = "\n".join(lines)
+    try:
+        parsed_yaml = yaml.safe_load(yaml_content)
+        # Handle empty front matter or non-dictionary results
+        if not parsed_yaml:
+            parsed_yaml = {}
+        elif not isinstance(parsed_yaml, dict):
+            parsed_yaml = {"content": parsed_yaml}
+    except yaml.YAMLError:
+        # If YAML parsing fails, return empty dict rather than failing the parse
+        parsed_yaml = {}
+
+    return FrontMatter(parsed_yaml)
+
+
+@generate
 def header():
-    """Parser for headers (# Header)"""
-    level = yield hash_sign.at_least(1).map(len)
+    """Parser for headers"""
+    yield optional_spaces
+    markers = yield regex(r"#{1,6}")
     yield space
-    content = yield inline_content << newline
-    return Header(level, content)
+    content = yield regex(r"[^\n]+")
+    yield newline
+    return Header(level=len(markers), content=content.strip())
 
 
 @generate
 def code_block():
     """Parser for fenced code blocks"""
+    # Opening fence and language
     yield string("```")
-    language = yield (regex(r"[a-zA-Z0-9]+") << newline).optional()
-    content = yield regex(r"(?:(?!```\n).*\n)*")
-    yield string("```") + newline
+    language = yield regex(r"[^\n]*")
+    yield newline
+
+    content_lines = []
+    while True:
+        line = yield regex(r"[^\n]*")
+        if line.strip() == "```":
+            break
+        content_lines.append(line)
+        yield newline
+
+    # Consume final newline after closing fence
+    yield newline
+
+    # Process language and content
+    language = language.strip() if language.strip() else None
+    content = "\n".join(content_lines)
+    if content:
+        content += "\n"
+
     return CodeBlock(content, language)
 
 
 @generate
-def front_matter():
-    """Parser for YAML front matter"""
-    yield string("---") + newline
-    content = yield regex(r"(?:(?!---\n).*\n)*")
-    yield string("---") + newline
-    # Note: You'll need to add YAML parsing here
-    return FrontMatter({})
+def callout():
+    """Parser for Obsidian callouts"""
+    # Opening line
+    yield string("> [!")
+    callout_type = yield regex(r"[A-Za-z]+")
+    yield string("]")
+    yield newline
+
+    content_lines = []
+    # Parse first content line (required)
+    yield string(">")
+    yield optional_spaces
+    first_line = yield regex(r"[^\n]+")
+    content_lines.append(first_line.strip())
+    yield newline
+
+    # Parse additional lines (optional)
+    try:
+        while True:
+            more_ahead = yield string(">").optional()
+            if more_ahead is None:
+                break
+            yield optional_spaces
+            line = yield regex(r"[^\n]+")
+            content_lines.append(line.strip())
+            yield newline
+    except:
+        pass
+
+    return Callout(callout_type, content_lines)
+
+
+# Inline element parser
+inline_element = inline_code | wiki_link | external_link | tag
 
 
 @generate
-def callout():
-    """Parser for Obsidian callouts (> [!TYPE])"""
-    yield string("> [!")
-    type_ = yield regex(r"[A-Za-z]+")
-    yield string("]") + newline
-    content = yield (string("> ") >> inline_content << newline).many()
-    return Callout(type_, content)
+def text():
+    """Parser for plain text between inline elements"""
+    content = yield regex(r"[^`\[\]#\n]+")
+    return Text(content)
 
 
 @generate
 def paragraph():
-    """Parser for paragraphs"""
-    content = yield inline_content << newline
-    return Paragraph(content)
+    """Parser for paragraphs with inline elements"""
+    # First line must not start with special characters
+    first_line = yield regex(r"[^#>```\n][^\n]*")
+    yield newline
+
+    # Optional additional lines
+    other_lines = yield (regex(r"[^#>```\n][^\n]*") << newline).many()
+
+    # Combine lines
+    all_lines = [first_line] + list(other_lines)
+    content = "\n".join(all_lines)
+
+    return Paragraph(content.strip())
 
 
-# Forward declaration for inline_content
-inline_content = forward_declaration()
-
-# --- Complete Document Parser ---
+# Block level parser (order matters for alternatives)
+block = header | code_block | callout | paragraph
 
 
 @generate
 def document():
-    """Parser for complete Obsidian markdown document"""
+    """Parser for complete Obsidian markdown documents"""
     # Optional front matter
-    front = yield front_matter.optional()
+    front = yield front_matter.optional()  # .map(FrontMatter)
 
-    # Main content - blocks separated by blank lines
-    blocks = yield (header | callout | code_block | paragraph).sep_by(blank_line)
+    # Optional whitespace/blank lines
+    yield whitespace_chars.optional()
 
-    return [front, *blocks] if front else blocks
+    # Content blocks
+    blocks = (
+        yield (block << whitespace_chars.optional()).many().map(ObsidianMarkdownContent)
+    )
 
+    # Final optional whitespace
+    yield whitespace_chars.optional()
+    yield eof
 
-# Initialize recursive parsers
-inline_content = (
-    bold | italic | inline_code | wiki_link | external_link | tag | plain_text
-).many()
+    if front is not None:
+        return front, blocks
+    return blocks
+
 
 # Export the main parser
 markdown_parser = document
+
+
+@dataclass
+class MarkdownRule:
+    """Rule for processing markdown based on frontmatter conditions"""
+
+    frontmatter_conditions: Dict[str, Any]  # e.g. {"type": "note", "status": "draft"}
+    parser_generator: Callable[[], Parser]  # Function that returns a parser
+    processor: Optional[Callable[[List[Any]], Any]] = (
+        None  # Optional post-processing function
+    )
+
+
+def print_parsed(parsed_text):
+    print(f"\nType: {type(parsed_text)}:\n\n{parsed_text}\n")
+
+
+class MarkdownRuleProcessor:
+    """Processes markdown content using rules based on frontmatter"""
+
+    def __init__(self):
+        self.rules: List[MarkdownRule] = []
+
+    def add_rule(self, rule: MarkdownRule) -> None:
+        """Add a new rule to the processor"""
+        self.rules.append(rule)
+
+    def _matches_conditions(
+        self, frontmatter: Dict[str, Any], conditions: Dict[str, Any]
+    ) -> bool:
+        """Check if frontmatter matches the given conditions"""
+        for key, expected_value in conditions.items():
+            if key not in frontmatter:
+                return False
+            actual_value = frontmatter[key]
+
+            # Handle different types of condition values
+            if isinstance(expected_value, (str, int, float, bool)):
+                if actual_value != expected_value:
+                    return False
+            elif isinstance(expected_value, list):
+                if actual_value not in expected_value:
+                    return False
+            elif callable(expected_value):
+                if not expected_value(actual_value):
+                    return False
+            elif isinstance(expected_value, dict):
+                if not isinstance(actual_value, dict):
+                    return False
+                if not self._matches_conditions(actual_value, expected_value):
+                    return False
+
+        return True
+
+    def process_markdown(self, content: str) -> Optional[Any]:
+        """Process markdown content using the first matching rule"""
+        try:
+            # First parse the document to get frontmatter and content
+            doc = markdown_parser.parse(content)
+
+            if not doc or not isinstance(doc[0], FrontMatter):
+                return None
+
+            frontmatter = doc[0].content
+            content_blocks = doc[1:]
+
+            # Find first matching rule
+            for rule in self.rules:
+                if self._matches_conditions(frontmatter, rule.frontmatter_conditions):
+                    # Generate parser for content blocks
+                    content_parser = rule.parser_generator()
+
+                    # Parse content blocks
+                    parsed_content = content_parser.parse(content_blocks)
+
+                    # Apply post-processing if defined
+                    if rule.processor:
+                        return rule.processor(parsed_content)
+                    return parsed_content
+
+            return None
+
+        except Exception as e:
+            print(f"Error processing markdown: {str(e)}")
+            return None

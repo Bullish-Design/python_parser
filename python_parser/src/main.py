@@ -4,7 +4,7 @@ import os
 from python_parser.src.parser import parse_obsidian_markdown, parse_model_directory
 from python_parser.src.config import TEST_DIR
 from python_parser.src.models import MarkdownParser
-from python_parser.src.parse_content import document, block, line
+from python_parser.src.parse_content import document, block  # , line
 
 # file_objs = parse_model_directory(TEST_DIR)
 
@@ -24,8 +24,13 @@ def main():
             print(
                 f"\n-------------------------------- {file} --------------------------------\n"
             )
-            print(f"\n```\n{output.content}\n```\n")
+            print(f"Frontmatter:")
+            for item in output.frontmatter.parameters:
+                print(f"  {item}")
+            print(f"\nContent:")
             parsed_content = document.parse(output.content)
-            print(f"\n{parsed_content}\n")
+            for item in parsed_content.nodes:
+                print(f"  {item}")
+            # print(f"\n{parsed_content}\n")
             # print(f"\n{output}\n")
     print("\n\nDone.")
