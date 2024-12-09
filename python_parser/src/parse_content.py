@@ -369,9 +369,24 @@ class MarkdownRuleProcessor:
     function: Callable
     post_processor: Optional[Callable] = None
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+    def __call__(self, file_path: str, file_content: str) -> Any:
         print(f"Calling processor function")
-        pass
+        processed_results = self.process_content(file_content)
+        if self.post_processor:
+            return self.post_process_file(file_path, processed_results)
+        return processed_results
+
+    def process_content(self, content: str) -> Any:
+        """Process markdown content using the rule"""
+        processed_results = self.function(content)
+        return processed_results
+
+    def post_process_file(self, file_path: str, processed_results: Any) -> Any:
+        """Post-process the results of the parser"""
+        if self.post_processor:
+            return self.post_processor(file_path, processed_results)
+        else:
+            raise NotImplementedError("No post-processor defined")
 
 
 @dataclass
@@ -381,14 +396,16 @@ class MarkdownRule:
     frontmatter_conditions: Dict[str, Any]  # e.g. {"type": "note", "status": "draft"}
     parser: Parser  # Function that returns a parser
     processor: Optional[Callable[[List[Any]], Any]] = (
-        None  # Optional post-processing function
+        None  # Optional post-processing function on the parsed_results
     )
 
     """
 
     frontmatter_conditions: Dict[str, Any]  # e.g. {"type": "note", "status": "draft"}
     parser: Parser  # Function that returns a parser
-    processor: Optional[Callable] = None  # Optional post-processing function
+    processor: Optional[MarkdownRuleProcessor] = (
+        None  # Optional post-processing function
+    )
 
     # @classmethod
     def process(self, file_path: str) -> None:
