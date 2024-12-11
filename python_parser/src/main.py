@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from python_parser.src.base import (
     ParserBase,
     GeneratorBase,
-    ParserGereratorBase,
+    ParserGeneratorBase,
     DataShape,
 )
 from python_parser.src.parser import parse_obsidian_markdown, parse_model_directory
@@ -14,11 +14,15 @@ from python_parser.src.parse_content import (
     document,
     block,
     front_matter,
+    basic_markdown_parser,
+    FrontMatter,
+    Header,
     MarkdownRule,
     MarkdownRuleProcessor,
     MarkdownRuleWatcher,
 )  # , line
-
+from pyomd import Notes, Note
+from pyomd.metadata import MetadataType
 
 # file_objs = parse_model_directory(TEST_DIR)
 
@@ -31,62 +35,115 @@ tag_list = ["#newModel"]
 # Functions ---------------------------------------------
 ## Processors -------------------------------------------
 def print_nodes(processed_results):
-    print(f"\nNodes:")
-    for item in processed_results.nodes:
-        print(f"  {item}")
+    # print(f"\nNodes:")
+    # for item in processed_results.nodes:
+    #    print(f"  {item.to("md")}")
     return processed_results
 
 
 def create_pydantic_model(processed_results):
     print(f"\nCreating Obsidian File:")
-    print(f"\n{processed_results}\n")
+    # print(f"\n{processed_results}\n")
     return processed_results
 
 
+def compare_shape(processed_results, input_shape: DataShape):
+    print_nodes(processed_results)
+    comparison = input_shape.compare(processed_results)
+    # print(f"\n>> Comparison result is: {comparison}")
+    return processed_results
+
+
+## Post Processors --------------------------------------
+def update_frontmatter_value(file_path: str, key: str, value: str):
+    """
+    Updates the status of the file to 'processed'
+    """
+    print(f"\nUpdating status of {file_path} to 'processed'\n")
+
+    with open(file_path, "r") as file:
+        file_contents = file.read()
+    markdown_base = basic_markdown_parser.parse(file_contents)
+    # print(f"\nInitial Frontmatter: \n {markdown_base.frontmatter}")
+    markdown_base.frontmatter.update(key=key, value=value)
+
+    # print(f"\nUpdated Frontmatter: \n {markdown_base.frontmatter}")
+    markdown_base.write(file_path)
+    # print(f"\nWrote file to disk\n")
+
+    return True
+
+
+def update_status(file_path: str, file_contents: str):
+    key = "status"
+    value = "processed"
+    result = update_frontmatter_value(file_path, key, value)
+    if result is True:
+        print(f"\nStatus of {file_path} updated to 'processed'\n\n")
+        return file_contents
+    return result
+
+
 # Classes -----------------------------------------------
+# DataShape instances -----------------------------------
 
-# MarkdownRule Classes ----------------------------------
+pydantic_md_file = DataShape(
+    shape=[
+        # "FrontMatter",
+        Header(level=1, content="*"),
+        Header(level=2, content="Attributes:"),
+    ]
+)
 
 
-# A Class to process files with a status of "modified"
-class ModifiedFileRule(MarkdownRule):
-    frontmatter_conditions = {"status": "modified"}
-    parser = document
-    processor = print_nodes
+# MarkdownRuleProcessor Objects -------------------------
+print_nodes_update_status = MarkdownRuleProcessor(
+    function=print_nodes, file_processor=update_status
+)
+
+compare_shape = MarkdownRuleProcessor(
+    function=compare_shape, kwargs={"input_shape": pydantic_md_file}
+)
+
+generate_models = MarkdownRuleProcessor(function=print_nodes)
+
+# MarkdownRule Objects ----------------------------------
+
+
+modified_file_rule = MarkdownRule(
+    frontmatter_conditions={"status": "new"},
+    parser=document,
+    processor=compare_shape,  # print_nodes_update_status,
+)
+
+generate_pydantic_models = MarkdownRule(
+    frontmatter_conditions={"type", "MODEL_TEMPLATE"},
+    parser=document,
+    processor=generate_models,
+)
+
+
+## Post-processing file modification updates as decorator for MarkdownRuleProcesors?
 
 
 def main():
     output_files = []
-    test_dir = MD_MODEL_DIR
+    md_parser = MarkdownParser()
+    test_dir = TEST_DIR  # MD_MODEL_DIR
     files = os.listdir(test_dir)
     print(f"Found {len(files)} files in {test_dir}:\n\nParsing results:\n")
 
     watcher = MarkdownRuleWatcher()
-    watcher.add_rule(ModifiedFileRule)
+    rule = modified_file_rule
+    watcher.add_rule(rule)
 
     for file in files:
         filepath = os.path.join(test_dir, file)
         if filepath.endswith(".md"):
             print(
-                f"\n\n\n-------------------------------- {file} --------------------------------\n"
+                f"\n\n\n-------------------------------- Processing {file} --------------------------------"
             )
-            print(f"\nProcessing {file} |  {filepath}\n")
+            # print(f"\nProcessing {file} |  {filepath}\n")
             watcher.process_file(filepath)
-            # print(f"\n**Parsing {file}**  |  {filepath}\n")
-            # parserObj = MarkdownParser()
-            # parserObj = document
-            # print(f"**Parser: {parserObj}**\n")
-            # output = parserObj.parse(filepath)
-            # print(
-            #    f"\n-------------------------------- {file} --------------------------------\n"
-            # )
-            # print(f"Frontmatter:")
-            # for item in output.frontmatter.parameters:
-            #    print(f"  {item}")
-            # print(f"\nContent:")
-            # parsed_content = document.parse(output.content)
-            # for item in parsed_content.nodes:
-            #    print(f"  {item}")
-            # print(f"\n{parsed_content}\n")
-            # print(f"\n{output}\n")
     print("\n\nDone.")
+    print(f"\n\n{md_parser}\n\n")

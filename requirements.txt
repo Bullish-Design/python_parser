@@ -3,9 +3,12 @@ iniconfig==2.0.0
 packaging==24.2
 parsy==2.1
 pluggy==1.5.0
+py-obsidianmd==0.1.7
 pydantic==2.10.3
 pydantic-core==2.27.1
 pytest==8.3.4
 python-dotenv==1.0.1
+python-frontmatter==1.1.0
 pyyaml==6.0.2
+setuptools==75.6.0
 typing-extensions==4.12.2

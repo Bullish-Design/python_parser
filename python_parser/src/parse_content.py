@@ -1,5 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
+from abc import ABC, abstractmethod
 from os import close
 from typing import List, Optional, Union, Any, Dict, Callable
 from parsy import (
@@ -16,11 +17,12 @@ from parsy import (
 from python_parser.src.parse_primitives import (
     content,
 )
+from pydantic import BaseModel
 
 import yaml
 
-
-# --- AST Node Definitions ---
+"""
+# Old Dataclass definitions:
 @dataclass
 class Text:
     content: str
@@ -75,11 +77,230 @@ class Paragraph:
 @dataclass
 class FrontMatter:
     content: Dict[str, Any]
+"""
+
+
+# Datashape classes --------------------------------
+class ParsyBase(BaseModel):
+    """
+    Base Pydantic model for creating parsers. Sets configs for everything else.
+    """
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
+class DataType(ParsyBase, ABC):
+    """
+    Base Pydantic model for a parsed node.
+    """
+
+    @abstractmethod
+    def to_string(self) -> str:
+        """
+        Convert the parsed node to a string.
+        """
+        return "Not implemented"
+
+    def to_python(self):
+        pass
+
+    def to(self, file_type: str) -> str:
+        """
+        Matches a file type string to the conversion function in question.
+
+        Args:
+            file_type: String indicating desired output format
+
+        Returns:
+            Converted string in requested format
+
+        Raises:
+            ValueError: If file_type is not supported
+        """
+        match file_type.lower():
+            case "string" | "str":
+                return self.to_string()
+            case "python" | "py":
+                return self.to_python()
+            case "json":
+                return self.to_json()
+            case "yaml" | "yml":
+                return self.to_yaml()
+            case "markdown" | "md":
+                return self.to_string()
+            case "html":
+                return self.to_html()
+            case _:
+                raise ValueError(f"Unsupported file type: {file_type}")
+
+
+# --- AST Node Definitions ---
+
+
+class Text(DataType):
+    """
+    Pydantic model for a text node in a Markdown file.
+    """
+
+    content: str
+
+    def to_string(self) -> str:
+        return self.content
+
+
+class ListItem(DataType):
+    """
+    Pydantic model for a list item.
+    """
+
+    level: int
+    content: str
+
+    def to_string(self) -> str:
+        spaces = "  " * self.level
+        return f"{spaces}- {self.content}"
+
+
+class InlineCode(DataType):
+    """
+    Pydantic model for an inline code block in a Markdown file.
+    """
+
+    content: str
+
+    def to_string(self) -> str:
+        return f"`{self.content}`"
+
+
+class CodeBlock(DataType):
+    """
+    Pydantic model for a code block in a Markdown file.
+    """
+
+    content: str
+    language: Optional[str]
+
+    def to_string(self) -> str:
+        return f"```{self.language}\n{self.content}\n```"
+
+
+class WikiLink(DataType):
+    """
+    Pydantic model for a wiki link in a Markdown file.
+    """
+
+    target: str
+    alias: Optional[str]
+
+    def to_string(self) -> str:
+        return f"[[{self.target}|{self.alias}]]"
+
+
+class ExternalLink(DataType):
+    """
+    Pydantic model for an external link in a Markdown file.
+    """
+
+    url: str
+    text: Optional[str]
+
+    def to_string(self) -> str:
+        return f"[{self.text}]({self.url})"
+
+
+class Tag(DataType):
+    """
+    Pydantic model for a tag in a Markdown file.
+    """
+
+    name: str
+
+    def to_string(self) -> str:
+        return f"#{self.name}"
+
+
+class Header(DataType):
+    """
+    Pydantic model for a header in a Markdown file.
+    """
+
+    level: int
+    content: str
+
+    def to_string(self) -> str:
+        return f"{'#' * self.level} {self.content}"
+
+
+class Callout(DataType):
+    """
+    Pydantic model for a callout in a Markdown file.
+    """
+
+    type: str
+    content: List[str]
+
+    def to_string(self) -> str:
+        return f">[!{self.type}]\n" + "\n".join(self.content)
+
+
+class Paragraph(DataType):
+    """
+    Pydantic model for a paragraph in a Markdown file.
+    """
+
+    content: str
+
+    def to_string(self) -> str:
+        return self.content
+
+
+class FrontMatter(DataType):
+    """
+    Pydantic model for the frontmatter of a Markdown file.
+    """
+
+    content: Dict[str, Any]
+
+    def to_string(self) -> str:
+        return (
+            "---\n"
+            + "\n".join([f"{key}: {value}" for key, value in self.content.items()])
+            + "\n---"
+        )
+
+    def add(self, key: str, value: Any) -> None:
+        self.content[key] = value
+
+    def remove(self, key: str) -> None:
+        if key in self.content:
+            del self.content[key]
+
+    def update(self, key: str, value: Any) -> None:
+        if key in self.content:
+            self.content[key] = value
+
+
+class ObsidianFileBase(DataType):
+    """
+    Base Pydantic model for an Obsidian Markdown file.
+    """
+
+    frontmatter: FrontMatter
+    content: str
+
+    def to_string(self) -> str:
+        return f"{self.frontmatter.to_string()}\n{self.content}"
+
+    def write(self, file_path: str) -> None:
+        with open(file_path, "w") as file:
+            file.write(self.to_string())
 
 
 MarkdownNode = Union[
     FrontMatter,
     Text,
+    ListItem,
     InlineCode,
     CodeBlock,
     WikiLink,
@@ -92,18 +313,27 @@ MarkdownNode = Union[
 ]
 
 
-@dataclass
-class ObsidianMarkdownContent:
+# @dataclass
+class ObsidianMarkdownContent(ParsyBase):
+    """
+    Represents an Obsidian Markdown file.
+    """
+
     nodes: List[MarkdownNode]
+
+    def to_string(self) -> str:
+        return "\n".join([node.to_string() for node in self.nodes])
 
 
 # --- Basic Parser Building Blocks ---
 
 # Whitespace
-space = regex(r"[ \t]")
+space = regex(r" ")
 spaces = space.many()
+tab = regex("\t")
+indent = spaces | tab.many()
 newline = regex(r"\r?\n")
-blank_line = regex(r"[ \t]*\r?\n")
+blank_line = regex(r"[ \t]*[\r\n]")
 optional_spaces = regex(r"[ \t]*")
 whitespace_char = regex(r"[ \t\r\n]")
 whitespace_chars = whitespace_char.many()
@@ -133,36 +363,81 @@ indented_line = optional_spaces >> line_content << newline
 
 # Common sequences
 triple_dash = string("---")
-frontmatter_delimiter = triple_dash.desc("Frontmatter delimiter")
+frontmatter_delimiter = triple_dash.desc("Frontmatter Delimiter")
 
 triple_backtick = string("```")
 
 # --- Inline Level Parsers ---
 
+
+# Calculate indentation level (n spaces = 1 level)
+def calc_indent_level(spaces: str, n: int) -> int:
+    if spaces:
+        return len(spaces) // n
+    else:
+        return 0
+
+
+# Parser for list items
+@generate
+def list_item():
+    # Get indentation at start of line
+    # print(f"parsing listitem")
+    # full_line = yield line_content
+    # print(f"  Line: `{full_line}`")
+    indent = yield optional_spaces
+    # print(f"  Spaces: '{indent}'")
+    indent_level = calc_indent_level(indent, 2)
+
+    # Match the list item marker
+    yield string("- ")
+
+    # Get the content after the marker
+    content = yield regex(r"[^\n]+").map(str)
+    # Consume the newline
+    yield (newline | eof)
+
+    return ListItem(level=indent_level, content=content)
+
+
 # Inline code
-inline_code = (backtick >> regex(r"[^`]+").map(str.strip) << backtick).map(InlineCode)
+@generate
+def inline_code():
+    yield backtick
+    content = yield regex(r"[^`]+").map(str)
+    yield backtick
+    return InlineCode(content=content)
+
 
 # Wiki links
-wiki_link = (
-    string("[[")
-    >> regex(r"[^\]\|]+").map(str.strip)
-    << pipe.optional()
-    >> regex(r"[^\]]+").map(str.strip).optional()
-    << string("]]")
-).map(lambda t: WikiLink(t[0], t[1] if len(t) > 1 else None))
+@generate
+def wiki_link():
+    yield string("[[")
+    target = yield regex(r"[^\|\]]+").map(str) << pipe.optional()
+    alias = yield regex(r"[^\]]+").map(str).optional()
+    yield string("]]")
+    return WikiLink(target=target, alias=alias)
+
 
 # External links
-external_link = (
-    bracket_open
-    >> regex(r"[^\]]+").map(str.strip)
-    << bracket_close
-    << paren_open
-    >> url.map(str.strip)
-    << paren_close
-).map(lambda t: ExternalLink(t[1], t[0]))
+@generate
+def external_link():
+    yield bracket_open
+    text = yield regex(r"[^\]]+").map(str)
+    yield bracket_close
+    yield paren_open
+    link_url = yield url.map(str)
+    yield paren_close
+    return ExternalLink(url=link_url, text=text)
+
 
 # Tags
-tag = (hash >> word).map(Tag)
+@generate
+def tag():
+    yield hash
+    name = yield word
+    return Tag(name=name)
+
 
 # --- Block Level Parsers ---
 
@@ -176,10 +451,6 @@ front_matter_content = regex(r"(?s).*?(?=\n---)").desc("Frontmatter Content")
 # front_matter_line = regex(r"[^\n\r-]*") << newline
 # front_matter_content = front_matter_line.many().map("\n".join)
 # Full parser for the Obsidian Markdown file
-basic_markdown_parser = seq(
-    frontmatter=frontmatter_delimiter.skip(newline) >> front_matter_content << newline,
-    content=frontmatter_delimiter.skip(newline) >> content,
-)
 
 
 def parse_frontmatter(frontmatter_content: str) -> FrontMatter:
@@ -190,39 +461,56 @@ def parse_frontmatter(frontmatter_content: str) -> FrontMatter:
             parsed_yaml = {}
     except yaml.YAMLError:
         parsed_yaml = {}
-    return FrontMatter(parsed_yaml)
+    return FrontMatter(content=parsed_yaml)
 
 
 @generate
 def front_matter():
     # print(f">> Starting front_matter...")
-    # yield frontmatter_delimiter
-    # print(f">> Triple dash")
-    # yield newline
-    # print(f">> Newline")
-    # content = yield front_matter_content
-    # print(f">> Content: \n```\n{content}\n```\n")
-    # yield frontmatter_delimiter  # .optional()
-    # print(f">> Optional triple dash")
-    # yield newline.optional()
-    # print(f">> Done with front matter extraction.")
+    yield frontmatter_delimiter
+    # print(f"fm delim")
+    yield newline
+    # print(f"fm content?")
+    frontmatter = yield front_matter_content << newline
+    # print(f"     Frontmatter: \n`{frontmatter}`")
+    yield frontmatter_delimiter << newline
 
-    basic_parsed_file = yield basic_markdown_parser
-    # print(f">> Basic Parsed File: {basic_parsed_file}")
-    frontmatter = basic_parsed_file["frontmatter"]
-    content = basic_parsed_file["content"]
-    # print(f">> Frontmatter: \n````\n{frontmatter}\n````\n")
-    # print(f">> Content: \n````\n{content}\n````\n")
-
-    parsed_frontmatter = parse_frontmatter(frontmatter)
+    parsed_frontmatter = parse_frontmatter(frontmatter_content=frontmatter)
     return parsed_frontmatter
 
 
-# Headers
-header = seq(
-    level=optional_spaces >> regex(r"#{1,6}").map(len) << space,
-    content=line_content.map(str.strip) << newline,
-).combine_dict(Header)
+# basic_markdown_parser = seq(
+#    frontmatter=frontmatter_delimiter.skip(newline) >> front_matter_content << newline,
+#    content=frontmatter_delimiter.skip(newline) >> content.desc("Content"),
+# )
+
+
+# Generated basic markdown parser:
+@generate
+def basic_markdown_parser():
+    # print(f">> Starting basic_markdown_parser...")
+
+    parsed_frontmatter = yield front_matter.optional()
+    # yield frontmatter_delimiter.skip(newline)
+    file_content = yield content.desc("Content")
+
+    return ObsidianFileBase(frontmatter=parsed_frontmatter, content=file_content)
+
+
+## Headers
+# header = seq(
+#    level=optional_spaces >> regex(r"#{1,6}").map(len) << space,
+#    content=line_content.map(str.strip) << newline,
+# ).combine_dict(Header)
+
+
+@generate
+def header():
+    # print(f">> Starting header parse...")
+    yield whitespace_chars
+    level = yield optional_spaces >> regex(r"#{1,6}").map(len) << space
+    content = yield line_content.map(str) << newline
+    return Header(level=level, content=content)
 
 
 # Code blocks
@@ -250,7 +538,7 @@ def code_block():
         content += "\n"
     # print(f">> CodeBlock Content: \n```\n{content}\n```\n")
 
-    return CodeBlock(content, language)
+    return CodeBlock(content=content, language=language)
 
 
 # Callouts
@@ -258,30 +546,28 @@ callout_start = (
     greater_than
     >> space.optional()
     >> string("[!")
-    >> regex(r"[A-Za-z]+").map(str.strip)
+    >> regex(r"[A-Za-z]+").map(str)
     << bracket_close
     << newline
 )
 
-callout_line = (
-    greater_than >> optional_spaces >> regex(r"[^\n\r]+").map(str.strip) << newline
-)
+callout_line = greater_than >> optional_spaces >> regex(r"[^\n\r]+").map(str) << newline
 
 
 @generate
 def callout():
-    # print(f">> Starting callout...")
+    # print(f">> Starting callout parse...")
     callout_type = yield callout_start
     first_line = yield callout_line
     other_lines = yield callout_line.many()
 
     content_lines = [first_line] + other_lines
-    return Callout(callout_type, content_lines)
+    return Callout(type=callout_type, content=content_lines)
 
 
 # Paragraphs
 paragraph_line = (
-    optional_spaces >> regex(r"[^#>```\n\r][^\n\r]*").map(str.strip) << newline
+    optional_spaces >> regex(r"[^#>```\n\r][^\n\r]*").map(str) << (newline | eof)
 )
 
 # paragraph = (paragraph_line >> paragraph_line.many()).map(
@@ -291,43 +577,38 @@ paragraph_line = (
 
 @generate
 def paragraph():
-    # print(f">> Starting paragraph...")
+    # print(f">> Starting paragraph parse...")
     first_line = yield paragraph_line
     # print(f">> First line: {first_line}")
     other_lines = yield paragraph_line.many()
     # print(f">> Other lines: {other_lines}")
     content_lines = [first_line] + other_lines
     # print(f">> Content lines: \n````\n{content_lines}\n````\n")
-    return Paragraph("\n".join(content_lines))
+    return Paragraph(content="\n".join(content_lines))
 
 
 # Block level parser (order matters for alternatives)
-block = header | code_block | callout | paragraph
+block = header | code_block | callout | list_item | paragraph
 
 
 # --- Document Level Parser ---
 @generate
 def document():
     """Parser for complete Obsidian markdown documents"""
-    print(f">> Starting document parse...")
+    # print(f">> Starting document parse...")
     # Optional front matter
     front = yield front_matter.optional()
     # print(f">> Front matter: \n````\n{front}\n````\n")
     # Optional whitespace/blank lines
-    yield whitespace_chars.optional()
-
+    # yield whitespace_chars.optional()
+    yield blank_line.optional()
     # Content blocks
     blocks = (
-        yield (block << (whitespace_chars.optional() | (optional_spaces + eof)))
-        .many()
-        .map(ObsidianMarkdownContent)
+        yield (block << (blank_line.many() | eof | (whitespace + eof))).many()
+        # (whitespace_chars.optional() | (optional_spaces + eof))).many()
     )
-    # if len(blocks.nodes) > 0:
-    #    for item in blocks.nodes:
-    #        print(f">> Node: {item}")
-    # else:
-    #    print(f">> Nodes: \n```\n{blocks}\n```\n")
-    # Final optional whitespace and EOF
+    blocks = ObsidianMarkdownContent(nodes=blocks)
+    # print(f">> Blocks: \n````\n{blocks}\n````\n")
     yield whitespace_chars.optional()
     yield eof
 
@@ -339,20 +620,11 @@ def document():
 @generate
 def simple_markdown_parser():
     """Parser for complete Obsidian markdown documents"""
-    print(f">> Starting simple document parse...")
+    # print(f">> Starting simple document parse...")
     # Optional front matter
     parsed_output = yield basic_markdown_parser
     # print(f">> Parsed Output:")  # " \n\n{parsed_output}\n\n")
-    # print(f"\n{parsed_output}")
-    front = None
-    front = parsed_output["frontmatter"]
-    front = parse_frontmatter(front)
-    # print(f">> Front matter: \n````\n{front}\n````\n")
-    # Optional whitespace/blank lines
-
-    # return the rest of the document content:
-    content = parsed_output["content"]
-    return front, content
+    return parsed_output
 
 
 # Export the main parsers
@@ -367,24 +639,37 @@ class MarkdownRuleProcessor:
     Processes file content, then optionally calls functions to edit the original file."""
 
     function: Callable
-    post_processor: Optional[Callable] = None
+    file_processor: Optional[Callable] = None
+    kwargs: Optional[Dict[str, Any]] = None
 
-    def __call__(self, file_path: str, file_content: str) -> Any:
+    def __call__(self, file_path: str, file_content: Any) -> Any:
         print(f"Calling processor function")
         processed_results = self.process_content(file_content)
-        if self.post_processor:
+        if self.file_processor:
             return self.post_process_file(file_path, processed_results)
         return processed_results
 
-    def process_content(self, content: str) -> Any:
-        """Process markdown content using the rule"""
-        processed_results = self.function(content)
+    def process(self, file_path: str, file_content: Any) -> Any:
+        print(f"Calling process function")
+        processed_results = self.process_content(file_content)
+        if self.file_processor:
+            return self.post_process_file(file_path, processed_results)
+        return processed_results
+
+    def process_content(self, content: Any) -> Any:
+        """Process markdown content using the rule with optional kwargs"""
+        print(f"Processing content with function {self.function}")
+        if self.kwargs:
+            processed_results = self.function(content, **self.kwargs)
+        else:
+            processed_results = self.function(content)
         return processed_results
 
     def post_process_file(self, file_path: str, processed_results: Any) -> Any:
         """Post-process the results of the parser"""
-        if self.post_processor:
-            return self.post_processor(file_path, processed_results)
+        if self.file_processor:
+            print(f"Post-processing file")
+            return self.file_processor(file_path, processed_results)
         else:
             raise NotImplementedError("No post-processor defined")
 
@@ -408,19 +693,28 @@ class MarkdownRule:
     )
 
     # @classmethod
-    def process(self, file_path: str) -> None:
+    def process(self, file_path: str, content: Optional[str] = None) -> None:
         """Process a markdown file using the rule"""
 
         # self = cls()
-
-        with open(file_path, "r") as file:
-            content = file.read()
+        # print(f"Processing MarkdownRule")
+        if content is None:
+            #    print(f"Reading file")
+            with open(file_path, "r") as file:
+                content = file.read()
+        # print(f"Parsing content")
         parsed_content = self.parser.parse(content)
-
-        if self.processor:
-            processed_content = self.processor(parsed_content)
+        # print(f"**Parsed Content: **\n\n{parsed_content}\n\n")
+        if self.processor is not None:
+            #    print(f"Processing content")
+            processed_content = self.processor(file_path, parsed_content)
+            # print(f"Processor Object: {processed_content}")
+            # processed_content = processor_obj.process(file_path, parsed_content)
         else:
             processed_content = parsed_content
+        print(f"\n\n**Processed Content Test: **\n")
+        for node in processed_content.nodes:
+            print(f"[{type(node).__qualname__}] | {node}")
         return processed_content
 
 
@@ -442,70 +736,44 @@ class MarkdownRuleWatcher:
         self, frontmatter: Dict[str, Any], conditions: Dict[str, Any]
     ) -> bool:
         """Check if frontmatter matches the given conditions"""
+        # print(f"\nChecking match conditions:")
+
         for key, expected_value in conditions.items():
             if key not in frontmatter:
+                print(f"\nChecking match conditions:\n>> No key match")
+                return False
+            elif frontmatter[key] != conditions[key]:
+                print(
+                    f"\nChecking match conditions: \n>> Key exists, but no value match"
+                )
                 return False
             actual_value = frontmatter[key]
-
-            ## Handle different types of condition values
-            # if isinstance(expected_value, (str, int, float, bool)):
-            #    if actual_value != expected_value:
-            #        return False
-            # elif isinstance(expected_value, list):
-            #    if actual_value not in expected_value:
-            #        return False
-            # elif callable(expected_value):
-            #    if not expected_value(actual_value):
-            #        return False
-            # elif isinstance(expected_value, dict):
-            #    if not isinstance(actual_value, dict):
-            #        return False
-            #    if not self._matches_conditions(actual_value, expected_value):
-            #        return False
+            # print(f">> Match Found -> {key}: {expected_value}")
 
         return True
 
-    def process_markdown(self, content: str) -> Optional[Any]:
+    def process_markdown(self, file_path, content: str) -> Optional[Any]:
         """Process markdown content using the first matching rule"""
         try:
-            # print(f"Starting initial parse...")
+            # print(f"Starting initial process_markdown parse...")
             # First parse the document to get frontmatter and content
-            frontmatter, content_str = simple_markdown_parser.parse(content)
+            obsidian_file = simple_markdown_parser.parse(content)
             # print(f"\nFrontmatter: \n{frontmatter}")
             # print(f"\nContent: \n{content_str}")
-            if not frontmatter:
+            if not obsidian_file.frontmatter:
                 print(f"Misc Frontmatter Failure")
                 return None
 
-            # frontmatter = doc["frontmatter"]  # .content
-            print(f"\nFrontmatter: ")
-            for key, value in frontmatter.content.items():
-                print(f"  {key}: {value}")
-            # content = doc["content"]
-            # for item in content:
-            #    print(f"  {item}")
-
-            print(f"\nContent: \n```\n{content_str}\n```\n")
             # Find first matching rule
             for rule in self.rules:
                 if self._matches_conditions(
-                    frontmatter.content, rule.frontmatter_conditions
+                    obsidian_file.frontmatter.content, rule.frontmatter_conditions
                 ):
-                    print(f"\n\n**Matched Rule: **  {rule.__qualname__}\n\n")
-                    # Generate parser for content blocks
-                    content_parser = rule.parser
-                    # print(f"Parsing content per rule")
-                    # Parse content blocks
-                    parsed_content = content_parser.parse(content_str)
-                    # print(f"**Parsed Content: **\n\n{parsed_content}\n\n")
-                    # Apply post-processing if defined
-                    if rule.processor:
-                        print(f"Processing content per rule processor")
-                        result = rule.processor(parsed_content)
-                        print(f"\n\n**Processed Result: **\n\n{result}\n\n")
-                        return result
-                    else:
-                        print(f"**Parsed Content: **\n\n{parsed_content}\n\n")
+                    print(f"\n\n**Matched Rule: **  \n{rule}\n\n")
+
+                    parsed_content = rule.process(
+                        file_path=file_path, content=obsidian_file.content
+                    )
                     return parsed_content
 
             return None
@@ -518,4 +786,4 @@ class MarkdownRuleWatcher:
         """Process a markdown file using the first matching rule"""
         with open(file_path, "r") as file:
             content = file.read()
-        return self.process_markdown(content)
+        return self.process_markdown(file_path, content)

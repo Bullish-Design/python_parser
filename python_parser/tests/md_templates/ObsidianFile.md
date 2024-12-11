@@ -1,5 +1,6 @@
 ---
 name: ObsidianFile
+status: new
 imports:
   - parsy
   - word

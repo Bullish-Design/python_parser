@@ -2,20 +2,11 @@
 from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
-from typing import ClassVar, Optional, List, Any, Dict
+from typing import ClassVar, Optional, List, Any, Dict, Union
 from pydantic import BaseModel
 from parsy import Parser
-from python_parser.src.parse_content import MarkdownNode
+from python_parser.src.parse_content import MarkdownNode, ParsyBase
 # BaseModel ---------------------------------------
-
-
-class ParsyBase(BaseModel):
-    """
-    Base Pydantic model for creating parsers. Sets configs for everything else.
-    """
-
-    class Config:
-        arbitrary_types_allowed = True
 
 
 class ParsedNode(ParsyBase):
@@ -168,9 +159,73 @@ class DataShape(ParsyBase):
     Serves as the "data shape" for the file. The data shape is a list of
         structured parsed nodes that represents the file contents in a structured format,
         for use in generating other file types.
+
+
     """
 
     shape: List[str | MarkdownNode] = []
+
+    def compare(self, nodes: List[Union[str, MarkdownNode]]) -> bool:
+        """
+        Compare an input list of nodes against this DataShape's expected shape.
+        Supports wildcards (*) for text content in node instances.
+
+        Args:
+            nodes: List of strings or MarkdownNode objects to compare against shape
+
+        Returns:
+            bool: True if input matches the shape, False otherwise
+        """
+        # print(f"\n\nself.shape: {type(self.shape)}\n{self.shape}\n\n\nNodes:\n")
+        # [print(f"   Node: {type(node).__qualname__} \n{node}") for node in nodes.nodes]
+        nodes = nodes.nodes
+        # if len(nodes) != len(self.shape):
+        #    return False
+        print(f"\n\nComparing Node shape:\n")
+        for expected, actual in zip(self.shape, nodes):
+            # Case 1: String type name comparison
+            print(f"  Expected | Actual: {expected} | {actual}")
+            if isinstance(expected, str):
+                try:
+                    expected_type = globals()[expected]
+                    if not isinstance(actual, expected_type):
+                        return False
+                except KeyError:
+                    return False
+
+            # Case 2: Type comparison
+            elif isinstance(expected, type):
+                if not isinstance(actual, expected):
+                    return False
+
+            # Case 3: Instance comparison with wildcard support
+            elif isinstance(expected, MarkdownNode):
+                # Check type match
+                if not isinstance(actual, type(expected)):
+                    return False
+
+                # Get all attributes of the expected object
+                for attr_name, expected_value in vars(expected).items():
+                    actual_value = getattr(actual, attr_name)
+
+                    # Skip comparison if expected value is "*"
+                    if isinstance(expected_value, str) and expected_value == "*":
+                        continue
+                    # Special case for lists containing wildcards
+                    elif isinstance(expected_value, list) and expected_value == ["*"]:
+                        continue
+                    # For dictionaries, check each value for wildcards
+                    elif isinstance(expected_value, dict):
+                        for key, exp_val in expected_value.items():
+                            if key not in actual_value:
+                                return False
+                            if exp_val != "*" and exp_val != actual_value[key]:
+                                return False
+                    # Otherwise do direct comparison
+                    elif expected_value != actual_value:
+                        return False
+
+        return True
 
 
 class ParserGeneratorBase(ParsyBase, ABC):

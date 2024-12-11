@@ -9,11 +9,13 @@ from python_parser.src.parse_content import (
     ExternalLink,
     Tag,
     Header,
-    # ListItem,
+    ListItem,
     Callout,
     FrontMatter,
     Paragraph,
+    list_item,
     markdown_parser,
+    basic_markdown_parser,
     paragraph,
     # bold,
     # italic,
@@ -81,22 +83,31 @@ from python_parser.src.parse_content import (
 # --- Inline Element Tests ---
 
 
+def test_list_item():
+    """Test list item parsing"""
+    assert list_item.parse("- test") == ListItem(level=0, content="test")
+    assert list_item.parse("  - test") == ListItem(level=1, content="test")
+    assert list_item.parse("    - test") == ListItem(level=2, content="test")
+
+
 def test_inline_code():
     """Test inline code parsing"""
     # Simple inline code
-    assert inline_code.parse("`code`") == InlineCode("code")
+    assert inline_code.parse("`code`") == InlineCode(content="code")
 
     # Code with spaces
-    assert inline_code.parse("` code with spaces `") == InlineCode(" code with spaces ")
+    assert inline_code.parse("` code with spaces `") == InlineCode(
+        content=" code with spaces "
+    )
 
     # Multiple words
     assert inline_code.parse("`multiple words here`") == InlineCode(
-        "multiple words here"
+        content="multiple words here"
     )
 
     # With special characters
     assert inline_code.parse("`code with * and # chars`") == InlineCode(
-        "code with * and # chars"
+        content="code with * and # chars"
     )
 
     # Test failure cases
@@ -112,16 +123,18 @@ def test_wiki_link():
     """Test wiki link parsing"""
     # Simple wiki link
     print(f"wiki_link: {wiki_link.parse('[[page]]')}")
-    assert wiki_link.parse("[[page]]") == WikiLink("page", None)
+    assert wiki_link.parse("[[page]]") == WikiLink(target="page", alias=None)
 
     # Wiki link with spaces
-    assert wiki_link.parse("[[my page]]") == WikiLink("my page", None)
+    assert wiki_link.parse("[[my page]]") == WikiLink(target="my page", alias=None)
 
     ## Wiki link with alias
-    assert wiki_link.parse("[[page|alias]]") == WikiLink("page", "alias")
+    assert wiki_link.parse("[[page|alias]]") == WikiLink(target="page", alias="alias")
 
     ## Wiki link with spaces in both parts
-    assert wiki_link.parse("[[my page|my alias]]") == WikiLink("my page", "my alias")
+    assert wiki_link.parse("[[my page|my alias]]") == WikiLink(
+        target="my page", alias="my alias"
+    )
 
     # Test failure cases
     with pytest.raises(Exception):
@@ -135,14 +148,16 @@ def test_wiki_link():
 def test_external_link():
     """Test external link parsing"""
     # Simple link
-    assert external_link.parse("[text](url)") == ExternalLink("url", "text")
+    assert external_link.parse("[text](url)") == ExternalLink(url="url", text="text")
 
     # Link with spaces in text
-    assert external_link.parse("[link text](url)") == ExternalLink("url", "link text")
+    assert external_link.parse("[link text](url)") == ExternalLink(
+        url="url", text="link text"
+    )
 
     # Link with full URL
     assert external_link.parse("[text](https://example.com)") == ExternalLink(
-        "https://example.com", "text"
+        url="https://example.com", text="text"
     )
 
     # Test failure cases
@@ -157,13 +172,13 @@ def test_external_link():
 def test_tag():
     """Test tag parsing"""
     # Simple tag
-    assert tag.parse("#tag") == Tag("tag")
+    assert tag.parse("#tag") == Tag(name="tag")
 
     # Tag with numbers
-    assert tag.parse("#tag123") == Tag("tag123")
+    assert tag.parse("#tag123") == Tag(name="tag123")
 
     # Tag with hyphens and underscores
-    assert tag.parse("#tag-with_symbols") == Tag("tag-with_symbols")
+    assert tag.parse("#tag-with_symbols") == Tag(name="tag-with_symbols")
 
     # Test failure cases
     with pytest.raises(Exception):
@@ -180,12 +195,14 @@ def test_tag():
 def test_header():
     """Test header parsing"""
     # Different header levels
-    assert header.parse("# Header\n") == Header(1, "Header")
-    assert header.parse("## Header\n") == Header(2, "Header")
-    assert header.parse("### Header\n") == Header(3, "Header")
+    assert header.parse("# Header\n") == Header(level=1, content="Header")
+    assert header.parse("## Header\n") == Header(level=2, content="Header")
+    assert header.parse("### Header\n") == Header(level=3, content="Header")
 
     # Header with multiple words
-    assert header.parse("# Multiple words here\n") == Header(1, "Multiple words here")
+    assert header.parse("# Multiple words here\n") == Header(
+        level=1, content="Multiple words here"
+    )
 
     # Test failure cases
     with pytest.raises(Exception):
@@ -199,10 +216,14 @@ def test_header():
 def test_code_block():
     """Test code block parsing"""
     # Simple code block
-    assert code_block.parse("```\ncode\n```\n") == CodeBlock("code\n", None)
+    assert code_block.parse("```\ncode\n```\n") == CodeBlock(
+        content="code\n", language=None
+    )
 
     # Code block with language
-    assert code_block.parse("```python\ncode\n```\n") == CodeBlock("code\n", "python")
+    assert code_block.parse("```python\ncode\n```\n") == CodeBlock(
+        content="code\n", language="python"
+    )
 
     # Multiple lines
     multi_line = """```
@@ -210,7 +231,9 @@ line 1
 line 2
 ```
 """
-    assert code_block.parse(multi_line) == CodeBlock("line 1\nline 2\n", None)
+    assert code_block.parse(multi_line) == CodeBlock(
+        content="line 1\nline 2\n", language=None
+    )
 
     # Test failure cases
     with pytest.raises(Exception):
@@ -241,14 +264,18 @@ def test_callout():
     simple_callout = """> [!NOTE]
 > This is a note
 """
-    assert callout.parse(simple_callout) == Callout("NOTE", ["This is a note"])
+    assert callout.parse(simple_callout) == Callout(
+        type="NOTE", content=["This is a note"]
+    )
 
     # Multiple lines
     multi_line = """> [!WARNING]
 > Line 1
 > Line 2
 """
-    assert callout.parse(multi_line) == Callout("WARNING", ["Line 1", "Line 2"])
+    assert callout.parse(multi_line) == Callout(
+        type="WARNING", content=["Line 1", "Line 2"]
+    )
 
     # Test failure cases
     with pytest.raises(Exception):
@@ -260,11 +287,13 @@ def test_callout():
 def test_paragraph():
     """Test paragraph parsing"""
     # Simple paragraph
-    assert paragraph.parse("This is a paragraph\n") == Paragraph("This is a paragraph")
+    assert paragraph.parse("This is a paragraph\n") == Paragraph(
+        content="This is a paragraph"
+    )
 
     # With special characters
     assert paragraph.parse("Para with *special* chars\n") == Paragraph(
-        "Para with *special* chars"
+        content="Para with *special* chars"
     )
 
     # Test failure cases
@@ -296,16 +325,17 @@ def hello():
 > This is a callout
 > With multiple lines
 """
-    result = markdown_parser.parse(doc)
-
+    result = document.parse(doc)
     # Verify structure
-    assert len(result) > 0
+    # assert len(result) > 0
     assert isinstance(result[0], FrontMatter)
+    body_result = result[1].nodes
+
     # print(f"Result: {result}")
-    assert isinstance(result[1], Header)
-    assert isinstance(result[2], Paragraph)
-    assert isinstance(result[3], CodeBlock)
-    assert isinstance(result[4], Callout)
+    assert isinstance(body_result[0], Header)
+    assert isinstance(body_result[1], Paragraph)
+    assert isinstance(body_result[2], CodeBlock)
+    assert isinstance(body_result[3], Callout)
 
 
 def test_document_without_front_matter():
@@ -315,6 +345,8 @@ def test_document_without_front_matter():
 Paragraph here.
 """
     result = markdown_parser.parse(doc)
+    result = result.nodes
+
     assert len(result) == 2
     assert isinstance(result[0], Header)
     assert isinstance(result[1], Paragraph)
@@ -324,6 +356,7 @@ def test_minimal_document():
     """Test parsing a minimal document"""
     doc = "Just a paragraph\n"
     result = markdown_parser.parse(doc)
+    result = result.nodes
     assert len(result) == 1
     assert isinstance(result[0], Paragraph)
 

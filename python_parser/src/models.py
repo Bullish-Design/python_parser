@@ -9,7 +9,7 @@ from python_parser.src.base import (
     ParserBase,
     ParsyBase,
     GeneratorBase,
-    ParserGereratorBase,
+    ParserGeneratorBase,
     ObsidianFrontmatter,
     ObsidianFile,
 )
@@ -75,10 +75,19 @@ class MarkdownParser(ParserBase):
         return processed_results
 
 
+class PythonParser(ParserBase):
+    """
+    Base parser for Python file parsing.
+    """
+
+    file_type: str = "py"
+    parser: Parser
+
+
 # Class to parse Markdown content into python code block objects
 
 
-class MarkdownBase(ParserGereratorBase):
+class MarkdownBase(ParserGeneratorBase):
     """
     Example model representing a specific Markdown structure.
     """
