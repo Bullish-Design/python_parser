@@ -14,6 +14,10 @@ from python_parser.src.models.datatypes import (
     Callout,
     Paragraph,
     ObsidianMarkdownContent,
+    ParsyBase,
+    ObsidianFile,
+    MarkdownNode,
+    DataType,
 )
 from python_parser.src.models.parsers import (
     list_item,
@@ -48,6 +52,10 @@ __all__ = [
     "Paragraph",
     "ObsidianMarkdownContent",
     "Text",
+    "ParsyBase",
+    "ObsidianFile",
+    "MarkdownNode",
+    "DataType",
     # "Bold",
     # "Italic",
     "list_item",

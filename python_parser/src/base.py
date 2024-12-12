@@ -5,7 +5,21 @@ from abc import ABC, abstractmethod
 from typing import ClassVar, Optional, List, Any, Dict, Union
 from pydantic import BaseModel
 from parsy import Parser
-from python_parser.src.parse_content import (
+from python_parser.src.models import (
+    ObsidianFrontmatter,
+    ObsidianFile,
+    ObsidianMarkdownContent,
+    ObsidianFileBase,
+    FrontMatter,
+    DataType,
+    MarkdownNode,
+    ParsyBase,
+    basic_markdown_parser,
+)
+
+
+"""
+parse_content import (
     MarkdownNode,
     ParsyBase,
     DataType,
@@ -15,7 +29,7 @@ from python_parser.src.parse_content import (
     ObsidianFileBase,
     ObsidianFile,
 )
-
+"""
 # BaseModel ---------------------------------------
 
 
@@ -44,7 +58,7 @@ class FileParserBase(ParsyBase):
                 f"\nFile type does not match expected type for file: {file_path}\n\n"
             )
 
-    def __call__(self, file_path: str):
+    def __call__(self, file_path: str) -> DataType | None:
         return self.parse_file(file_path)
 
 
@@ -73,7 +87,7 @@ class ObsidianParserBase(FileParserBase):
                     f"\nObsidian Parser did not return a DataType object for content in file: {file_path}\n\n"
                 )
 
-    def __call__(self, file_path: str):
+    def __call__(self, file_path: str) -> tuple[FrontMatter, DataType] | None:
         return self.parse(file_path)
 
 
