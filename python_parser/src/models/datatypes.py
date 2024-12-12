@@ -1,23 +1,7 @@
 from typing import List, Dict, Union, Optional, Any
 from abc import ABC, abstractmethod
 
-from parsy import (
-    seq,
-    generate,
-    regex,
-    string,
-    string_from,
-    whitespace,
-    forward_declaration,
-    eof,
-    Parser,
-)
-from python_parser.src.parse_primitives import (
-    content,
-)
 from pydantic import BaseModel
-
-import yaml
 
 
 # Datashape classes --------------------------------

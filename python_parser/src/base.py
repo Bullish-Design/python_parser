@@ -6,7 +6,6 @@ from typing import ClassVar, Optional, List, Any, Dict, Union
 from pydantic import BaseModel
 from parsy import Parser
 from python_parser.src.models import (
-    ObsidianFrontmatter,
     ObsidianFile,
     ObsidianMarkdownContent,
     ObsidianFileBase,
