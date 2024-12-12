@@ -2,14 +2,18 @@ import os
 from dataclasses import dataclass
 
 from python_parser.src.base import (
-    ParserBase,
-    GeneratorBase,
-    ParserGeneratorBase,
-    DataShape,
+    # ParserBase,
+    # GeneratorBase,
+    # ParserGeneratorBase,
+    # DataShape,
+    FileParserBase,
+    ObsidianParserBase,
 )
-from python_parser.src.parser import parse_obsidian_markdown, parse_model_directory
+
+# from python_parser.src.parser import parse_obsidian_markdown, parse_model_directory
 from python_parser.src.config import TEST_DIR, MD_MODEL_DIR
-from python_parser.src.models import MarkdownParser
+
+# from python_parser.src.models import MarkdownParser
 from python_parser.src.parse_content import (
     document,
     block,
@@ -17,12 +21,11 @@ from python_parser.src.parse_content import (
     basic_markdown_parser,
     FrontMatter,
     Header,
-    MarkdownRule,
-    MarkdownRuleProcessor,
-    MarkdownRuleWatcher,
+    # MarkdownRule,
+    # MarkdownRuleProcessor,
+    # MarkdownRuleWatcher,
 )  # , line
-from pyomd import Notes, Note
-from pyomd.metadata import MetadataType
+
 
 # file_objs = parse_model_directory(TEST_DIR)
 
@@ -47,11 +50,11 @@ def create_pydantic_model(processed_results):
     return processed_results
 
 
-def compare_shape(processed_results, input_shape: DataShape):
-    print_nodes(processed_results)
-    comparison = input_shape.compare(processed_results)
-    # print(f"\n>> Comparison result is: {comparison}")
-    return processed_results
+# def compare_shape(processed_results, input_shape: DataShape):
+#    print_nodes(processed_results)
+#    comparison = input_shape.compare(processed_results)
+#    # print(f"\n>> Comparison result is: {comparison}")
+#    return processed_results
 
 
 ## Post Processors --------------------------------------
@@ -85,42 +88,17 @@ def update_status(file_path: str, file_contents: str):
 
 
 # Classes -----------------------------------------------
+
+
 # DataShape instances -----------------------------------
 
-pydantic_md_file = DataShape(
-    shape=[
-        # "FrontMatter",
-        Header(level=1, content="*"),
-        Header(level=2, content="Attributes:"),
-    ]
-)
-
-
-# MarkdownRuleProcessor Objects -------------------------
-print_nodes_update_status = MarkdownRuleProcessor(
-    function=print_nodes, file_processor=update_status
-)
-
-compare_shape = MarkdownRuleProcessor(
-    function=compare_shape, kwargs={"input_shape": pydantic_md_file}
-)
-
-generate_models = MarkdownRuleProcessor(function=print_nodes)
-
-# MarkdownRule Objects ----------------------------------
-
-
-modified_file_rule = MarkdownRule(
-    frontmatter_conditions={"status": "new"},
-    parser=document,
-    processor=compare_shape,  # print_nodes_update_status,
-)
-
-generate_pydantic_models = MarkdownRule(
-    frontmatter_conditions={"type", "MODEL_TEMPLATE"},
-    parser=document,
-    processor=generate_models,
-)
+# pydantic_md_file = DataShape(
+#    shape=[
+#        # "FrontMatter",
+#        Header(level=1, content="*"),
+#        Header(level=2, content="Attributes:"),
+#    ]
+# )
 
 
 ## Post-processing file modification updates as decorator for MarkdownRuleProcesors?
@@ -139,24 +117,35 @@ def parse_dir(file_type: str, directory: str):
             watcher.process_file(filepath)
 
 
+obsidianParser = FileParserBase(file_type="md", parser=basic_markdown_parser)
+full_doc_parser = ObsidianParserBase(content_parser=document)
+
+
 def main():
     output_files = []
-    md_parser = MarkdownParser()
+    # md_parser = MarkdownParser()
     test_dir = TEST_DIR  # MD_MODEL_DIR
     files = os.listdir(test_dir)
     print(f"Found {len(files)} files in {test_dir}:\n\nParsing results:\n")
 
-    watcher = MarkdownRuleWatcher()
-    rule = modified_file_rule
-    watcher.add_rule(rule)
+    # watcher = MarkdownRuleWatcher()
+    # rule = modified_file_rule
+    # watcher.add_rule(rule)
 
     for file in files:
         filepath = os.path.join(test_dir, file)
-        if filepath.endswith(".md"):
+        if filepath.endswith("md"):
             print(
                 f"\n\n\n-------------------------------- Processing {file} --------------------------------"
             )
             # print(f"\nProcessing {file} |  {filepath}\n")
-            watcher.process_file(filepath)
+            # watcher.process_file(filepath)
+            prelim_parsed_file = full_doc_parser(filepath)
+            print(f"\nFrontmatter:")
+            for key, value in prelim_parsed_file.frontmatter.content.items():
+                print(f"  {key}: {value}")
+            print(f"\nContent:")
+            for item in prelim_parsed_file.content.nodes:
+                print(f"  {item}")
     print("\n\nDone.")
-    print(f"\n\n{md_parser}\n\n")
+    # print(f"\n\n{md_parser}\n\n")

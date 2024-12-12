@@ -314,7 +314,7 @@ MarkdownNode = Union[
 
 
 # @dataclass
-class ObsidianMarkdownContent(ParsyBase):
+class ObsidianMarkdownContent(DataType):
     """
     Represents an Obsidian Markdown file.
     """
@@ -323,6 +323,22 @@ class ObsidianMarkdownContent(ParsyBase):
 
     def to_string(self) -> str:
         return "\n".join([node.to_string() for node in self.nodes])
+
+
+class ObsidianFile(DataType):
+    """
+    Represents an Obsidian Markdown file.
+    """
+
+    frontmatter: FrontMatter
+    content: ObsidianMarkdownContent
+
+    def to_string(self) -> str:
+        return f"{self.frontmatter.to_string()}\n{self.content.to_string()}"
+
+    def write(self, file_path: str) -> None:
+        with open(file_path, "w") as file:
+            file.write(self.to_string())
 
 
 # --- Basic Parser Building Blocks ---
@@ -630,160 +646,3 @@ def simple_markdown_parser():
 # Export the main parsers
 markdown_parser = document
 # markdown_parser = simple_markdown_parser
-
-
-@dataclass
-class MarkdownRuleProcessor:
-    """Processes markdown content using rules based on frontmatter.
-
-    Processes file content, then optionally calls functions to edit the original file."""
-
-    function: Callable
-    file_processor: Optional[Callable] = None
-    kwargs: Optional[Dict[str, Any]] = None
-
-    def __call__(self, file_path: str, file_content: Any) -> Any:
-        print(f"Calling processor function")
-        processed_results = self.process_content(file_content)
-        if self.file_processor:
-            return self.post_process_file(file_path, processed_results)
-        return processed_results
-
-    def process(self, file_path: str, file_content: Any) -> Any:
-        print(f"Calling process function")
-        processed_results = self.process_content(file_content)
-        if self.file_processor:
-            return self.post_process_file(file_path, processed_results)
-        return processed_results
-
-    def process_content(self, content: Any) -> Any:
-        """Process markdown content using the rule with optional kwargs"""
-        print(f"Processing content with function {self.function}")
-        if self.kwargs:
-            processed_results = self.function(content, **self.kwargs)
-        else:
-            processed_results = self.function(content)
-        return processed_results
-
-    def post_process_file(self, file_path: str, processed_results: Any) -> Any:
-        """Post-process the results of the parser"""
-        if self.file_processor:
-            print(f"Post-processing file")
-            return self.file_processor(file_path, processed_results)
-        else:
-            raise NotImplementedError("No post-processor defined")
-
-
-@dataclass
-class MarkdownRule:
-    """Rule for processing markdown based on frontmatter conditions
-
-    frontmatter_conditions: Dict[str, Any]  # e.g. {"type": "note", "status": "draft"}
-    parser: Parser  # Function that returns a parser
-    processor: Optional[Callable[[List[Any]], Any]] = (
-        None  # Optional post-processing function on the parsed_results
-    )
-
-    """
-
-    frontmatter_conditions: Dict[str, Any]  # e.g. {"type": "note", "status": "draft"}
-    parser: Parser  # Function that returns a parser
-    processor: Optional[MarkdownRuleProcessor] = (
-        None  # Optional post-processing function
-    )
-
-    # @classmethod
-    def process(self, file_path: str, content: Optional[str] = None) -> None:
-        """Process a markdown file using the rule"""
-
-        # self = cls()
-        # print(f"Processing MarkdownRule")
-        if content is None:
-            #    print(f"Reading file")
-            with open(file_path, "r") as file:
-                content = file.read()
-        # print(f"Parsing content")
-        parsed_content = self.parser.parse(content)
-        # print(f"**Parsed Content: **\n\n{parsed_content}\n\n")
-        if self.processor is not None:
-            #    print(f"Processing content")
-            processed_content = self.processor(file_path, parsed_content)
-            # print(f"Processor Object: {processed_content}")
-            # processed_content = processor_obj.process(file_path, parsed_content)
-        else:
-            processed_content = parsed_content
-        print(f"\n\n**Processed Content Test: **\n")
-        for node in processed_content.nodes:
-            print(f"[{type(node).__qualname__}] | {node}")
-        return processed_content
-
-
-def print_parsed(parsed_text):
-    print(f"\nType: {type(parsed_text)}:\n\n{parsed_text}\n")
-
-
-class MarkdownRuleWatcher:
-    """Processes markdown content using rules based on frontmatter"""
-
-    def __init__(self):
-        self.rules: List[MarkdownRule] = []
-
-    def add_rule(self, rule: MarkdownRule) -> None:
-        """Add a new rule to the processor"""
-        self.rules.append(rule)
-
-    def _matches_conditions(
-        self, frontmatter: Dict[str, Any], conditions: Dict[str, Any]
-    ) -> bool:
-        """Check if frontmatter matches the given conditions"""
-        # print(f"\nChecking match conditions:")
-
-        for key, expected_value in conditions.items():
-            if key not in frontmatter:
-                print(f"\nChecking match conditions:\n>> No key match")
-                return False
-            elif frontmatter[key] != conditions[key]:
-                print(
-                    f"\nChecking match conditions: \n>> Key exists, but no value match"
-                )
-                return False
-            actual_value = frontmatter[key]
-            # print(f">> Match Found -> {key}: {expected_value}")
-
-        return True
-
-    def process_markdown(self, file_path, content: str) -> Optional[Any]:
-        """Process markdown content using the first matching rule"""
-        try:
-            # print(f"Starting initial process_markdown parse...")
-            # First parse the document to get frontmatter and content
-            obsidian_file = simple_markdown_parser.parse(content)
-            # print(f"\nFrontmatter: \n{frontmatter}")
-            # print(f"\nContent: \n{content_str}")
-            if not obsidian_file.frontmatter:
-                print(f"Misc Frontmatter Failure")
-                return None
-
-            # Find first matching rule
-            for rule in self.rules:
-                if self._matches_conditions(
-                    obsidian_file.frontmatter.content, rule.frontmatter_conditions
-                ):
-                    print(f"\n\n**Matched Rule: **  \n{rule}\n\n")
-
-                    parsed_content = rule.process(
-                        file_path=file_path, content=obsidian_file.content
-                    )
-                    return parsed_content
-
-            return None
-
-        except Exception as e:
-            print(f"Error processing markdown: {str(e)}")
-            return None
-
-    def process_file(self, file_path: str) -> Optional[Any]:
-        """Process a markdown file using the first matching rule"""
-        with open(file_path, "r") as file:
-            content = file.read()
-        return self.process_markdown(file_path, content)
