@@ -21,64 +21,6 @@ from pydantic import BaseModel
 
 import yaml
 
-"""
-# Old Dataclass definitions:
-@dataclass
-class Text:
-    content: str
-
-
-@dataclass
-class InlineCode:
-    content: str
-
-
-@dataclass
-class CodeBlock:
-    content: str
-    language: Optional[str]
-
-
-@dataclass
-class WikiLink:
-    target: str
-    alias: Optional[str]
-
-
-@dataclass
-class ExternalLink:
-    url: str
-    text: Optional[str]
-
-
-@dataclass
-class Tag:
-    name: str
-
-
-@dataclass
-class Header:
-    level: int
-    content: str
-
-
-@dataclass
-class Callout:
-    type: str
-    content: List[str]
-
-
-@dataclass
-class Paragraph:
-    content: str
-
-
-# --- AST Node Definitions ---
-@dataclass
-class FrontMatter:
-    content: Dict[str, Any]
-"""
-
 
 # Datashape classes --------------------------------
 class ParsyBase(BaseModel):

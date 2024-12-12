@@ -1,5 +1,8 @@
 import pytest
-from python_parser.src.parse_content import (
+from python_parser.src.models import *
+
+"""
+from python_parser.src.models.datatypes import (
     Text,
     # Bold,
     # Italic,
@@ -13,6 +16,8 @@ from python_parser.src.parse_content import (
     Callout,
     FrontMatter,
     Paragraph,
+)
+from python_parser.src.models.parse_primitives import (
     list_item,
     markdown_parser,
     basic_markdown_parser,
@@ -30,7 +35,7 @@ from python_parser.src.parse_content import (
     document,
     # inline_content,
 )
-
+"""
 
 # --- Inline Parser Tests ---
 # def test_bold():
