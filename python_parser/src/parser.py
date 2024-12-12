@@ -154,3 +154,6 @@ def parse_model_directory(file_dir: str) -> List[ObsidianFile]:
             )
     print("\n\nParsing complete.\n")
     return output_files
+
+
+# Classes ----------------------------------------------------------

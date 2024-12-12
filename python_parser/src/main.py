@@ -126,6 +126,19 @@ generate_pydantic_models = MarkdownRule(
 ## Post-processing file modification updates as decorator for MarkdownRuleProcesors?
 
 
+# Parser Files in Directory ---------------------
+def parse_dir(file_type: str, directory: str):
+    # Get list of files in directory
+    files = os.listdir(directory)
+    for file in files:
+        if file.endswith(file_type):
+            print(
+                f"\n\n\n-------------------------------- Processing {file} --------------------------------"
+            )
+            # print(f"\nProcessing {file} |  {filepath}\n")
+            watcher.process_file(filepath)
+
+
 def main():
     output_files = []
     md_parser = MarkdownParser()

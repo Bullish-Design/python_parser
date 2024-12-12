@@ -5,8 +5,33 @@ from abc import ABC, abstractmethod
 from typing import ClassVar, Optional, List, Any, Dict, Union
 from pydantic import BaseModel
 from parsy import Parser
-from python_parser.src.parse_content import MarkdownNode, ParsyBase
+from python_parser.src.parse_content import MarkdownNode, ParsyBase, DataType
 # BaseModel ---------------------------------------
+
+
+# File Parser Base:
+class FileParserBase(ParsyBase):
+    """
+    Base Class for Parsing Files
+    """
+
+    file_type: str
+    parser: Parser
+
+    def parse(self, file_path: str) -> DataType | None:
+        if file_path.endswith(self.file_type):
+            with open(file_path, "r") as file:
+                file_contents = file.read()
+            parsed_result = self.parser.parse(file_contents)
+            if isinstance(parsed_result, DataType):
+                return parsed_result
+            else:
+                raise ValueError(
+                    f"\nParser did not return a DataType object for file: {file_path}\n\n"
+                )
+
+    def __call__(self, file_path: str):
+        return self.parse(file_path)
 
 
 class ParsedNode(ParsyBase):
@@ -49,21 +74,6 @@ class ObsidianFrontmatter(ParsyBase):
             for parameter in self.parameters:
                 return_str += f"\n{parameter.name}: {parameter.value}"
             return_str += "\n---"
-        return return_str
-
-
-class ObsidianFile(ParsyBase):
-    """
-    Base Pydantic model for an Obsidian Markdown file.
-    """
-
-    frontmatter: ObsidianFrontmatter
-    content: str
-
-    def __str__(self) -> str:
-        return_str = "\nObsidian File:\n"
-        return_str += f"\n{self.frontmatter}"
-        return_str += f"\n{self.content}\n"
         return return_str
 
 
