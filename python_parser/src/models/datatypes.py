@@ -1,5 +1,6 @@
 from typing import List, Dict, Union, Optional, Any
 from abc import ABC, abstractmethod
+from datetime import datetime
 
 from pydantic import BaseModel
 
@@ -228,6 +229,12 @@ class FrontMatter(DataType):
     def update(self, key: str, value: Any) -> None:
         if key in self.content:
             self.content[key] = value
+
+    def datetime_to_string(self) -> None:
+        for key, value in self.content.items():
+            if isinstance(value, datetime):
+                print(f"    Found datetime: {value}, converting to string...")
+                self.content[key] = value.strftime("%Y-%m-%d %H:%M:%S")
 
 
 class ObsidianFileBase(DataType):
