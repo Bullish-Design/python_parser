@@ -336,7 +336,7 @@ def document():
     # print(f">> Front matter: \n````\n{front}\n````\n")
     # Optional whitespace/blank lines
     # yield whitespace_chars.optional()
-    yield blank_line.optional()
+    yield blank_line.many().optional()
     # Content blocks
     blocks = (
         yield (block << (blank_line.many() | eof | (whitespace + eof))).many()
