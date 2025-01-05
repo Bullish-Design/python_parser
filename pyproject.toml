@@ -1,6 +1,7 @@
 [project]
 name = "python_parser"
-dynamic = ["version", "dependencies"]
+version = "0.0.1"
+dynamic = ["dependencies"]
 
 [project.scripts]
 main = "python_parser.src.main:main"
