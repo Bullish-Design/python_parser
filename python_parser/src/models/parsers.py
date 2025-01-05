@@ -220,19 +220,19 @@ def basic_markdown_parser():
 
 @generate
 def header():
-    print(f">> Starting header parse...")
+    # print(f">> Starting header parse...")
     yield whitespace_chars
     level = yield optional_spaces >> regex(r"#{1,6}").map(len)  # << space
-    print(f"   Level: {level}")
-    space_char = yield space
-    index = yield line_info
-    print(f"   Space: {space_char}")
+    # print(f"   Level: {level}")
+    yield space
+    # index = yield line_info
+    # print(f"   Space: {space_char}")
     content = yield line_content.map(str)  # << newline.optional()
-    print(f"   Content: {content}")
+    # print(f"   Content: {content}")
     yield newline.optional()
-    if not space_char:
-        print(f"   No space")
-        return Result.failure(index, "No space after header level")
+    # if not space_char:
+    #    print(f"   No space")
+    #    return Result.failure(index, "No space after header level")
     return Header(level=level, content=content)
 
 
