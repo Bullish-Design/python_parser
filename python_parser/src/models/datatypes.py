@@ -184,10 +184,12 @@ class Callout(DataType):
     Pydantic model for a callout in a Markdown file.
     """
 
-    type: str
+    type: Optional[str]
     content: List[str]
 
     def to_string(self) -> str:
+        if not self.type:
+            return f"[!]\n" + "\n".join(self.content)
         return f">[!{self.type}]\n" + "\n".join(self.content)
 
 

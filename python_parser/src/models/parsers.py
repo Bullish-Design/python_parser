@@ -270,7 +270,9 @@ def code_block():
 @generate
 def callout():
     # print(f">> Starting callout parse...")
-    callout_type = yield callout_start
+    callout_type = yield callout_start.optional()
+    if not callout_type:
+        callout_type = None
     first_line = yield callout_line
     other_lines = yield callout_line.many()
 
