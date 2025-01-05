@@ -235,7 +235,7 @@ class FrontMatter(DataType):
             if isinstance(value, datetime):
                 print(f"    Found datetime: {value}, converting to string...")
                 self.content[key] = value.strftime("%Y-%m-%d %H:%M:%S")
-            elif isinstance(value, date):
+            if isinstance(value, date):
                 print(f"    Found date: {value}, converting to string...")
                 self.content[key] = value.strftime("%Y-%m-%d")
 
