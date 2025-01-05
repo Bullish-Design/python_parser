@@ -257,7 +257,7 @@ def code_block():
         yield newline
     # print(f">> CodeBlock Content lines: \n{content_lines}")
 
-    yield newline
+    yield newline.optional()
 
     content = "\n".join(content_lines)
     if content:
