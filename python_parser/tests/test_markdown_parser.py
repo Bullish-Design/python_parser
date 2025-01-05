@@ -587,5 +587,32 @@ def test_document_edge_cases():
     assert len(images) == 5
 
 
+def test_mixed_tag_quotes():
+    """Test that tags with mixed quotes are parsed correctly"""
+    markdown = """### Tip
+
+`pkgs.fetchFrom*` helpers retrieve *snapshots* of version-controlled sources, as opposed to the entire version history, which is more efficient. `pkgs.fetchgit` by default also has the same behaviour, but can be changed through specific attributes given to it.
+
+## Caveats
+
+Because Nixpkgs fetchers are fixed-output derivations, an [output hash](https://nixos.org/manual/nix/stable/language/advanced-attributes#adv-attr-outputHash) has to be specified, usually indirectly through a `hash` attribute. This hash refers to the derivation output, which can be different from the remote source itself!
+
+This has the following implications that you should be aware of:
+
+- Use Nix (or Nix-aware) tooling to produce the output hash.
+- When changing any fetcher parameters, always update the output hash. Use one of the methods from [the section called “Updating source hashes”](https://nixos.org/manual/nixpkgs/stable/#sec-pkgs-fetchers-updating-source-hashes "Updating source hashes"). Otherwise, existing store objects that match the output hash will be re-used rather than fetching new content.
+"""
+    result = markdown_parser.parse(markdown)
+    result = result.nodes
+    print(f"\nMixed tag nodes:")
+    for node in result:
+        print(f"   {type(node).__name__}: {node}")
+
+    assert isinstance(result[0], Header)
+    assert isinstance(result[1], Paragraph)
+    assert isinstance(result[2], Header)
+    assert isinstance(result[3], Paragraph)
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
