@@ -7,6 +7,7 @@ from python_parser.src.models import (
     CodeBlock,
     WikiLink,
     ExternalLink,
+    ImageLink,
     Tag,
     Header,
     ListItem,
@@ -22,6 +23,9 @@ from python_parser.src.models import (
     inline_code,
     wiki_link,
     external_link,
+    image_link,
+    image_external_link,
+    image_wiki_link,
     tag,
     header,
     front_matter,
@@ -30,6 +34,8 @@ from python_parser.src.models import (
     document,
     # inline_content,
 )
+
+# from python_parser.src.models import *
 
 """
 from python_parser.src.models.datatypes import (
@@ -394,6 +400,191 @@ def test_minimal_document():
     result = result.nodes
     assert len(result) == 1
     assert isinstance(result[0], Paragraph)
+
+
+# Tests for individual image link parsers
+def test_local_image_basic():
+    """Test basic local image parsing"""
+    result = image_wiki_link.parse("![[image.png]]")
+    assert isinstance(result, ImageLink)
+    assert result.path == "image.png"
+    assert result.is_external is False
+    assert result.alt_text is None
+
+
+def test_local_image_with_alt():
+    """Test local image with alt text"""
+    result = image_wiki_link.parse("![[photo.jpg|My vacation photo]]")
+    assert isinstance(result, ImageLink)
+    assert result.path == "photo.jpg"
+    assert result.is_external is False
+    assert result.alt_text == "My vacation photo"
+
+
+def test_local_image_with_spaces():
+    """Test local image with spaces in filename"""
+    result = image_wiki_link.parse("![[my summer photo.jpg|Holiday 2023]]")
+    assert isinstance(result, ImageLink)
+    assert result.path == "my summer photo.jpg"
+    assert result.alt_text == "Holiday 2023"
+
+
+def test_external_image_basic():
+    """Test basic external image parsing"""
+    result = image_external_link.parse("![alt text](https://example.com/image.jpg)")
+    assert isinstance(result, ImageLink)
+    assert result.path == "https://example.com/image.jpg"
+    assert result.is_external is True
+    assert result.alt_text == "alt text"
+
+
+def test_external_image_empty_alt():
+    """Test external image with empty alt text"""
+    result = image_external_link.parse("![](https://example.com/image.jpg)")
+    assert isinstance(result, ImageLink)
+    assert result.path == "https://example.com/image.jpg"
+    assert result.is_external is True
+    assert result.alt_text is None
+
+
+def test_combined_image_parser():
+    """Test that combined parser handles both types"""
+    local = image_link.parse("![[local.png]]")
+    assert isinstance(local, ImageLink)
+    assert local.is_external is False
+
+    external = image_link.parse("![alt](https://example.com/pic.jpg)")
+    assert isinstance(external, ImageLink)
+    assert external.is_external is True
+
+
+# Tests for invalid inputs
+def test_invalid_local_image():
+    """Test that invalid local image syntax raises ParseError"""
+    with pytest.raises(Exception):
+        image_wiki_link.parse("[[image.png]]")  # Missing !
+    with pytest.raises(Exception):
+        image_wiki_link.parse("![[image.png")  # Unclosed brackets
+
+
+def test_invalid_external_image():
+    """Test that invalid external image syntax raises ParseError"""
+    with pytest.raises(Exception):
+        image_external_link.parse("[alt](image.jpg)")  # Missing !
+    with pytest.raises(Exception):
+        image_external_link.parse("![alt](image.jpg")  # Unclosed parenthesis
+
+
+# Tests for images in complete markdown documents
+def test_image_in_document():
+    """Test parsing images within a complete markdown document"""
+    markdown = """# My Document
+
+This is a paragraph with a local image ![[photo.jpg|Holiday]] embedded in it.
+
+Here's another paragraph with an external image ![sunset](https://example.com/sunset.jpg).
+
+```python
+# This is a code block
+print("Hello")
+```
+
+And here's a final local image:
+![[diagram.png]]
+"""
+    result = markdown_parser.parse(markdown)
+    result = result.nodes
+
+    # Find all ImageLink instances in the parsed result
+    images = [node for node in result if isinstance(node, ImageLink)]
+
+    assert any(img.path == "photo.jpg" and img.alt_text == "Holiday" for img in images)
+    assert any(
+        img.path == "https://example.com/sunset.jpg" and img.alt_text == "sunset"
+        for img in images
+    )
+    assert any(img.path == "diagram.png" and img.alt_text is None for img in images)
+    assert len(images) == 3
+
+
+def test_complex_document_with_images():
+    """Test parsing a more complex document with various elements including images"""
+    markdown = """# Photo Gallery
+
+## Local Images
+Here's a local image: ![[vacation.jpg|Summer 2023]]
+
+## External Images
+And an external one: ![winter scene](https://example.com/winter.jpg)
+
+```text
+This is a code block that mentions images
+![[not-an-image.png]]
+![not-an-image](url)
+```
+
+### Mixed Content
+- List item with ![[inline-image.png]]
+- Another with ![external](https://example.com/pic.jpg)
+
+Final paragraph with multiple images:
+![[local1.png]] and ![external2](https://example.com/ext2.jpg)
+"""
+    result = markdown_parser.parse(markdown)
+    result = result.nodes
+
+    # Verify overall structure
+    assert isinstance(result[0], Header)  # # Photo Gallery
+
+    # Find all images
+    images = [node for node in result if isinstance(node, ImageLink)]
+
+    # Should find 5 images (not counting the ones in the code block)
+    assert len(images) == 5
+
+    # Verify specific images are found
+    local_images = [img for img in images if not img.is_external]
+    external_images = [img for img in images if img.is_external]
+
+    assert len(local_images) == 2
+    assert len(external_images) == 3
+
+    # Verify specific image properties
+    assert any(
+        img.path == "vacation.jpg" and img.alt_text == "Summer 2023"
+        for img in local_images
+    )
+    assert any(
+        img.path == "https://example.com/winter.jpg" and img.alt_text == "winter scene"
+        for img in external_images
+    )
+
+
+def test_document_edge_cases():
+    """Test edge cases in document parsing with images"""
+    # ![[]]  # Empty local image
+
+    markdown = """# Edge Cases
+
+![](https://example.com/img.jpg)  # Empty alt text
+![[image with spaces.jpg|alt with spaces]]
+![alt with spaces](https://example.com/spaces in url.jpg)
+
+![[nested/path/image.png]]  # Image in subfolder
+![](https://example.com/path?param=value#fragment)  # URL with query and fragment
+"""
+
+    result = markdown_parser.parse(markdown)
+    result = result.nodes
+    images = [node for node in result if isinstance(node, ImageLink)]
+
+    # Verify specific edge cases
+    paths = [img.path for img in images]
+    assert "nested/path/image.png" in paths
+    assert "https://example.com/path?param=value#fragment" in paths
+    assert "image with spaces.jpg" in paths
+    # assert "https://example.com/spaces in url.jpg" in paths
+    assert len(images) == 5
 
 
 if __name__ == "__main__":

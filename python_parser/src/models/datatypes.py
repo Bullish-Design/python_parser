@@ -133,6 +133,29 @@ class ExternalLink(DataType):
         return f"[{self.text}]({self.url})"
 
 
+class ImageLink(DataType):
+    """
+    Represents an image link in Obsidian markdown.
+    Can be either a local image (wiki-style) or external URL.
+
+    Examples:
+    - Local image: ![[image.png]]
+    - External image: ![alt text](https://example.com/image.png)
+    """
+
+    path: str  # Either the local path or URL
+    is_external: bool  # True for external URLs, False for local wiki-style links
+    alt_text: Optional[str] = None  # Optional alt text/alias
+
+    def to_string(self) -> str:
+        if self.is_external:
+            return f"![{self.alt_text}]({self.path})"
+        elif self.alt_text is None:
+            return f"![[{self.path}]]"
+        else:
+            return f"![[{self.path}|{self.alt_text}]]"
+
+
 class Tag(DataType):
     """
     Pydantic model for a tag in a Markdown file.
@@ -228,6 +251,7 @@ MarkdownNode = Union[
     InlineCode,
     CodeBlock,
     WikiLink,
+    ImageLink,
     ExternalLink,
     Tag,
     Header,

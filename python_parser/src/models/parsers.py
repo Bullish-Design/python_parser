@@ -43,6 +43,7 @@ from python_parser.src.models.datatypes import (
     ExternalLink,
     Tag,
     FrontMatter,
+    ImageLink,
     Header,
     ObsidianFileBase,
     CodeBlock,
@@ -114,6 +115,35 @@ def external_link():
     link_url = yield url.map(str)
     yield paren_close
     return ExternalLink(url=link_url, text=text)
+
+
+# Image Links
+@generate
+def image_wiki_link():
+    """Parser for Obsidian local image links: ![[image.png]] or ![[image.png|alt text]]"""
+    yield string("!")
+    yield string("[[")
+    target = yield regex(r"[^\|\]]+").map(str) << pipe.optional()
+    alias = yield regex(r"[^\]]+").map(str).optional()
+    yield string("]]")
+    return ImageLink(path=target, is_external=False, alt_text=alias)
+
+
+@generate
+def image_external_link():
+    """Parser for markdown image links: ![alt text](url)"""
+    yield string("!")
+    yield string("[")
+    alt_text = yield regex(r"[^\]]+").map(str).optional()
+    yield string("]")
+    yield string("(")
+    link_url = yield url.map(str)
+    yield string(")")
+    return ImageLink(path=link_url, is_external=True, alt_text=alt_text)
+
+
+# Combine both image link parsers
+image_link = image_wiki_link | image_external_link
 
 
 # Tags
@@ -257,7 +287,7 @@ def paragraph():
 
 
 # Block level parser (order matters for alternatives)
-block = header | code_block | callout | list_item | paragraph
+block = header | code_block | callout | list_item | image_link | paragraph
 
 
 # --- Document Level Parser ---
