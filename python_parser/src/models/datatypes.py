@@ -20,6 +20,40 @@ class DataType(ParsyBase, ABC):
     Base Pydantic model for a parsed node.
     """
 
+    class Config:
+        # Allow arbitrary types to be converted to JSON
+        arbitrary_types_allowed = True
+
+        json_encoders = {
+            datetime: lambda v: v.isoformat(),
+            date: lambda v: v.isoformat(),
+        }
+        # This ensures you can use the model with ORMs
+        from_attributes = True
+        # Allow extra fields when deserializing
+        extra = "allow"
+
+    def dict(self, *args, **kwargs):
+        """Override dict method to ensure all nested objects are serializable"""
+
+        def convert_to_serializable(obj: Any) -> Any:
+            if isinstance(obj, (datetime, date)):
+                return obj.isoformat()
+            elif isinstance(obj, BaseModel):
+                return obj.dict(*args, **kwargs)
+            elif isinstance(obj, list):
+                return [convert_to_serializable(item) for item in obj]
+            elif isinstance(obj, dict):
+                return {
+                    key: convert_to_serializable(value) for key, value in obj.items()
+                }
+            elif hasattr(obj, "__dict__"):
+                return convert_to_serializable(obj.__dict__)
+            return obj
+
+        data = super().dict(*args, **kwargs)
+        return convert_to_serializable(data)
+
     @abstractmethod
     def to_string(self) -> str:
         """
