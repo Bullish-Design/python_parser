@@ -69,7 +69,9 @@ callout_start = (
     << newline
 )
 
-callout_line = greater_than >> optional_spaces >> regex(r"[^\n\r]+").map(str) << newline
+callout_line = (
+    greater_than >> optional_spaces >> regex(r"[^\n\r]+").map(str).optional() << newline
+)
 
 
 # Parser to capture the content after frontmatter
