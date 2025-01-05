@@ -15,7 +15,7 @@ class ParsyBase(BaseModel):
         arbitrary_types_allowed = True
 
 
-class DataType(ParsyBase, ABC):
+class DataType(BaseModel, ABC):
     """
     Base Pydantic model for a parsed node.
     """
@@ -52,7 +52,9 @@ class DataType(ParsyBase, ABC):
             return obj
 
         data = super().dict(*args, **kwargs)
-        return convert_to_serializable(data)
+        serialized_obj = convert_to_serializable(data)
+        print(f"Serialized object: \n{serialized_obj}\n")
+        return serialized_obj
 
     @abstractmethod
     def to_string(self) -> str:

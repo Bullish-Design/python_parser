@@ -38,6 +38,9 @@ class FileParserBase(ParsyBase):
     Base Class for Parsing Files
     """
 
+    class Config:
+        arbitrary_types_allowed = True
+
     file_type: str
     parser: Parser
 
@@ -85,6 +88,15 @@ class ObsidianParserBase(FileParserBase):
                 raise ValueError(
                     f"\nObsidian Parser did not return a DataType object for content in file: {file_path}\n\n"
                 )
+
+    ## Function to convert any markdown node to a dictionary
+    # def node_to_dict(node: MarkdownNode) -> Dict:
+    #    """Convert any markdown node to a JSON-serializable dictionary"""
+    #    if isinstance(node, SerializableNode):
+    #        return node.dict()
+    #    elif hasattr(node, "__dict__"):
+    #        return node.__dict__
+    #    return str(node)  # Fallback for any other type
 
     def __call__(self, file_path: str) -> tuple[FrontMatter, DataType] | None:
         return self.parse(file_path)
