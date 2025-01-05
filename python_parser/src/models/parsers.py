@@ -280,7 +280,7 @@ def callout():
 
 # Paragraphs
 paragraph_line = (
-    optional_spaces >> regex(r"[^#>```\n\r][^\n\r]*").map(str) << (newline | eof)
+    optional_spaces >> regex(r"[^#>```!\n\r][^\n\r]*").map(str) << (newline | eof)
 )
 
 # paragraph = (paragraph_line >> paragraph_line.many()).map(
