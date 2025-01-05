@@ -303,7 +303,7 @@ def paragraph():
 
 
 # Block level parser (order matters for alternatives)
-block = header | code_block | callout | list_item | image_link | paragraph
+block = header | code_block | callout | list_item | image_link | tag | paragraph
 
 
 # --- Document Level Parser ---
