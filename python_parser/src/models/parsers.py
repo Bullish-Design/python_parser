@@ -255,7 +255,27 @@ def code_block():
             break
         content_lines.append(line)
         yield newline
-    # print(f">> CodeBlock Content lines: \n{content_lines}")
+    print(f">> CodeBlock Content lines: \n{content_lines}")
+
+    # while True:
+    #    # Try to detect EOF before reading next line
+    #    try:
+    #        yield eof.should_fail("expected more content or closing ```")
+    #    except:
+    #        continue  # Not EOF, continue
+
+    #    line = yield regex(r"[^\n\r]*")
+    #    if line.strip() == "```":
+    #        break
+    #    content_lines.append(line)
+
+    #    # Must find a newline or EOF
+    #    try:
+    #        yield newline
+    #    except:
+    #        # If we can't find newline, check if we're at EOF
+    #        yield eof  # This will fail if we're not at EOF
+    #        raise Exception("Code block must be closed with ```")
 
     yield newline.optional()
 
@@ -282,7 +302,7 @@ def callout():
 
 # Paragraphs
 paragraph_line = (
-    optional_spaces >> regex(r"[^#>```!\n\r][^\n\r]*").map(str) << (newline | eof)
+    optional_spaces >> regex(r"[^#>```!`\n\r][^\n\r]*").map(str) << (newline | eof)
 )
 
 # paragraph = (paragraph_line >> paragraph_line.many()).map(
