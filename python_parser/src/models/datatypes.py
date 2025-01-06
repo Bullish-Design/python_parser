@@ -53,7 +53,7 @@ class DataType(BaseModel, ABC):
 
         data = super().dict(*args, **kwargs)
         serialized_obj = convert_to_serializable(data)
-        print(f"Serialized object: \n{serialized_obj}\n")
+        # print(f"Serialized object: \n{serialized_obj}\n")
         return serialized_obj
 
     @abstractmethod
