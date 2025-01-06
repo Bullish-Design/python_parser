@@ -41,6 +41,7 @@ from python_parser.src.models.parsers import (
     document,
     reference,
     reference_parser,
+    parse_references,
     # inline_content,
 )
 
@@ -84,6 +85,7 @@ __all__ = [
     "code_block",
     "reference",
     "reference_parser",
+    "parse_references",
     "document",
     # "inline_content",
 ]
