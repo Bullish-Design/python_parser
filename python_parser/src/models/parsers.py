@@ -148,7 +148,7 @@ def image_external_link():
 # Combine both image link parsers
 image_link = image_wiki_link | image_external_link
 
-non_link = regex(r"[^\[\]#!`]+")  # Any text that isn't a link or tag
+non_link = regex(r"[^\[\]#]+")  # Any text that isn't a link or tag
 
 link = wiki_link | external_link | image_link
 
@@ -174,9 +174,14 @@ def reference_parser():
         # Try to find a reference
         try:
             # Skip non-reference text
-            yield (non_link | newline | space.many()).optional()
+            discarded = yield (non_link | newline | space).many().optional()
+            if discarded:
+                print(f"  Discarded: '{discarded}'")
+
             # Get the reference
             ref = yield reference
+            if ref:
+                print(f"Ref: {ref}")
             refs.append(ref)
         except:
             break

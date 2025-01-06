@@ -32,6 +32,7 @@ from python_parser.src.models import (
     callout,
     code_block,
     document,
+    parse_references,
     # inline_content,
 )
 
@@ -585,6 +586,32 @@ def test_document_edge_cases():
     assert "image with spaces.jpg" in paths
     # assert "https://example.com/spaces in url.jpg" in paths
     assert len(images) == 5
+
+
+def test_parse_references():
+    """Test that references are parsed correctly"""
+    markdown = """# References
+
+Just testing ![](https://example.com/img.jpg) that this thing works. # Empty alt text ![[image with spaces.jpg|alt with spaces]]
+
+Maybe this works too? ![alt with spaces](https://example.com/spaces in url.jpg) And again, lets see what's what.
+
+![[nested/path/image.png]]  # Image in subfolder
+![](https://example.com/path?param=value#fragment)  # URL with query and fragment
+"""
+    result = markdown_parser.parse(markdown)
+    result = result.nodes
+
+    links = []
+    for node in result:
+        node_links = parse_references(node.to_string())
+        links.extend(node_links)
+
+    for link in links:
+        print(f"Link: {link}")
+    assert (
+        links[0] == "![](https://example.com/img.jpg)"
+    )  # "https://example.com/img.jpg"
 
 
 def test_mixed_tag_quotes():
