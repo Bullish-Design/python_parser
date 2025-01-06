@@ -12,6 +12,7 @@ from parsy import (
     line_info,
 )
 import yaml
+from typing import List, Union
 
 # Library Imports -----------------------------------------
 from python_parser.src.models.parse_primitives import (
@@ -147,6 +148,10 @@ def image_external_link():
 # Combine both image link parsers
 image_link = image_wiki_link | image_external_link
 
+non_link = regex(r"[^\[\]#!`]+")  # Any text that isn't a link or tag
+
+link = wiki_link | external_link | image_link
+
 
 # Tags
 @generate
@@ -156,7 +161,45 @@ def tag():
     return Tag(name=name)
 
 
+reference = tag | link | inline_code
+
 # --- Block Level Parsers ---
+
+
+@generate
+def reference_parser():
+    """Parser that collects all references (links and tags) from text."""
+    refs = []
+    while True:
+        # Try to find a reference
+        try:
+            # Skip non-reference text
+            yield (non_link | newline | space.many()).optional()
+            # Get the reference
+            ref = yield reference
+            refs.append(ref)
+        except:
+            break
+
+    return refs
+
+
+def parse_references(text: str) -> List[Union[Tag, WikiLink, ExternalLink]]:
+    """
+    Parse text and return all references found.
+
+    Args:
+        text: String to parse
+
+    Returns:
+        List of found references (tags and links)
+    """
+    try:
+        return reference_parser.parse(text)
+    except Exception as e:
+        print(f"Parse error: {e}")
+        return []
+
 
 # Front Matter
 # Obsidian File Opening Delimiter

@@ -39,6 +39,8 @@ from python_parser.src.models.parsers import (
     callout,
     code_block,
     document,
+    reference,
+    reference_parser,
     # inline_content,
 )
 
@@ -80,6 +82,8 @@ __all__ = [
     "front_matter",
     "callout",
     "code_block",
+    "reference",
+    "reference_parser",
     "document",
     # "inline_content",
 ]
