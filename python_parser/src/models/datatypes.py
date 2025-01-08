@@ -100,6 +100,11 @@ class DataType(BaseModel, ABC):
                 raise ValueError(f"Unsupported file type: {file_type}")
 
 
+# TODO: Can I move all DB node/tag related stuff out into the ObsidianDB library?
+#          - Import this library, create the DB parsers from primitives
+#          - Have all parsing/generation and database handling there.
+
+
 # TODO:  Make class for content_type obj
 @dataclass
 class ContentType:
@@ -110,12 +115,12 @@ class ContentType:
 # --- AST Node Definitions ---
 class DB_Node_Tag(DataType):
     """
-    Pydantic model that recognizes a DB Node tag (Hidden obsidian tag - %%{DB_ID}|{Git_VersionMajor.Minor.Patch}%%)
+    Pydantic model that recognizes a DB Node tag (Hidden obsidian tag - %%{DB_ID}|{Git_VersionMajor.Minor.Patch}|{node_type: i.e.-is_block}%%)
     """
 
     node_id: str
     git_version: str
-    is_block: bool = True  # Is this necessary? Just parse the rest until finding another %%, the type will come with the parsing.
+    is_inline: bool = False  # Is this necessary? Nested content would be easier to handle with an explicit inline/block tag callout. Does it need more node types?
 
     def to_string(self) -> str:
         return f"%%{self.node_id}|{self.git_version}%%"
@@ -128,7 +133,11 @@ class ContentNode(DataType):
 
     id: str
     content_str: str
-    content_type: Optional[ContentType]
+    content_type: Optional[ContentType]  # For parsing to/generating from the database.
+
+    # TODO: Look at making the DataType obj require a "parse" function? And include a Parsy parser attribute in the class definition?
+    #          - Could make it easier for handling database operations, would just store everything as strings, and parse into MarkdownNode objects after database lookup
+    #          - Could have secondary parse that identifies nested DB_Node tags, performs recursive parsing/generation as needed.
 
     def detect_type(self):
         # parse the content_str to determine what type it is TODO: figure out how to return Parsy parser type based on sucessful parsing
@@ -149,11 +158,18 @@ class DB_Node(DataType):
     Pydantic model that represents the DB Node in the database. consists of a DB_Node_Tag, node_parameters, and content.
     """
 
-    node_id: str
-    node_parameters: Dict[str, Any]
-    content: ContentNode
+    id: str
+    node_tag: DB_Node_Tag
+    node_parameters: Dict[
+        str, Any
+    ]  # File Frontmatter - block comment if code file, frontmatter if markdown
+    content: List[
+        ContentNode
+    ]  # TODO: Have another relationship lookup for a one-to-many relationship between the node and the list of contentNodes?
 
-    # relationship: For linking the db node to the content node - many to many for reusing nodes across different files (configs, constants, envvars, todo lists, etc.)
+    ## Relationships:
+    # TODO: relationship: For linking the db node to the content node - many to many for reusing nodes across different files (configs, constants, envvars, todo lists, etc.)
+    # TODO: relationship: For linking the db_node to the db_node_tag - one to one - would there be any situation where I'd want a one-to-many or a many-to-many relationship here??
 
     def to_string(self) -> str:
         # node_tag = f"%%{self.node_tag.node_id}|{self.node_tag.git_version}%%"
