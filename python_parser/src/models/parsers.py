@@ -37,6 +37,7 @@ from python_parser.src.models.parse_primitives import (
     line_content,
     triple_backtick,
     blank_line,
+    hidden_tag,
 )
 
 from python_parser.src.models.datatypes import (
@@ -53,6 +54,7 @@ from python_parser.src.models.datatypes import (
     Callout,
     Paragraph,
     ObsidianMarkdownContent,
+    DB_Node,
 )
 
 
@@ -65,6 +67,44 @@ def calc_indent_level(spaces: str, n: int) -> int:
         return len(spaces) // n
     else:
         return 0
+
+
+# match-case db_node parser based on db_node_tag parse type?
+
+
+# DB Node parser:
+@generate
+def db_node_tag():
+    yield optional_spaces
+    yield newline.optional()
+    yield hidden_tag
+    node_id = yield regex(r"[^\|\%%]+").map(str) << pipe.optional()
+    node_id = node_id.strip()
+    git_version = yield regex(r"[^\%%]+").map(str).optional()
+    git_version = git_version.strip()
+    yield hidden_tag
+
+    # Check if this is a block node by looking for only whitespace then newline or EOF
+    try:
+        spaces = yield optional_spaces
+        output = yield (newline | eof).optional()
+        if output:
+            is_block = True
+    except:
+        is_block = False
+
+    return DB_Node_Tag(node_id=node_id, git_version=git_version)
+
+
+@generate
+def db_node():
+    node_tag = yield db_node_tag
+    content_str = yield regex(r"[^\%%]+").map(str).optional()
+    if content_str:
+        content = content_str
+    else:
+        content = None
+    return content
 
 
 # Parser for list items
@@ -184,7 +224,8 @@ def reference_parser():
                 print(f"Ref: {ref}")
             refs.append(ref)
         except:
-            break
+            # break
+            continue
 
     return refs
 

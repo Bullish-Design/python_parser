@@ -1,14 +1,26 @@
 annotated-types==0.7.0
+click==8.1.8
+dev-utils @ git+https://github.com/Bullish-Design/dev_utils.git@85074e06bf44f1d68a2d2de6b6e32dd79c6d6a9e
+greenlet==3.1.1
 iniconfig==2.0.0
+markdown-it-py==3.0.0
+mdurl==0.1.2
+msgpack==1.1.0
 packaging==24.2
 parsy==2.1
 pluggy==1.5.0
 py-obsidianmd==0.1.7
 pydantic==2.10.3
 pydantic-core==2.27.1
+pygments==2.19.0
+pynvim==0.5.2
 pytest==8.3.4
 python-dotenv==1.0.1
 python-frontmatter==1.1.0
 pyyaml==6.0.2
+rich==13.9.4
 setuptools==75.6.0
+shellingham==1.5.4
+tomlkit==0.13.2
+typer==0.15.1
 typing-extensions==4.12.2

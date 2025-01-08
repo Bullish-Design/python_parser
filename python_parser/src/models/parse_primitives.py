@@ -38,6 +38,7 @@ paren_close = string(")")
 pipe = string("|")
 greater_than = string(">")
 exclamation = string("!")
+hidden_tag = string("%%")
 
 # Basic text patterns
 non_special_char = regex(r"[^#>\[\]`\n\r]")

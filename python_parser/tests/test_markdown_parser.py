@@ -14,6 +14,7 @@ from python_parser.src.models import (
     Callout,
     FrontMatter,
     Paragraph,
+    DB_Node,
     list_item,
     markdown_parser,
     basic_markdown_parser,
@@ -33,6 +34,7 @@ from python_parser.src.models import (
     code_block,
     document,
     parse_references,
+    db_node,
     # inline_content,
 )
 
@@ -121,6 +123,101 @@ from python_parser.src.models.parse_primitives import (
 #    markdown_parser, inline_code, wiki_link, external_link,
 #    tag, header, code_block, front_matter, callout, paragraph
 # )
+
+
+# --- Test DB_Node functionality ---
+
+
+# Basic format tests
+def test_simple_block_dbnode():
+    """Test basic block DB node format"""
+    result = db_node.parse("%%abc|123%%\n")
+    assert result.node_id == "abc"
+    assert result.git_version == "123"
+    assert result.is_block == True
+
+
+def test_simple_inline_dbnode():
+    """Test basic inline DB node format"""
+    result = db_node.parse_partial("%%abc|123%% some text")
+    assert result[0].node_id == "abc"
+    assert result[0].git_version == "123"
+    assert result[0].is_block == False
+    assert result[1] == " some text"
+
+
+def test_block_dbnode_with_spaces():
+    """Test block DB node with trailing spaces"""
+    result = db_node.parse("%%abc|123%%   \n")
+    assert result.node_id == "abc"
+    assert result.git_version == "123"
+    assert result.is_block == True
+
+
+def test_block_dbnode_at_eof():
+    """Test block DB node at end of file (no newline)"""
+    result = db_node.parse("%%abc|123%%")
+    assert result.node_id == "abc"
+    assert result.git_version == "123"
+    assert result.is_block == True
+
+
+# Edge cases and variations
+def test_dbnode_ids_with_special_chars():
+    """Test DB nodes with various special characters in node_id"""
+    cases = [
+        "%%abc-123|version%%\n",
+        "%%path/to/node|version%%\n",
+        "%%node_with_underscore|version%%\n",
+        "%%node.with.dots|version%%\n",
+    ]
+    for case in cases:
+        result = db_node.parse(case)
+        assert result.is_block == True
+
+
+def test_dbnode_git_versions_with_special_chars():
+    """Test DB nodes with various git version formats"""
+    cases = [
+        "%%node|a1b2c3d%%\n",
+        "%%node|feature/branch-name%%\n",
+        "%%node|v1.2.3%%\n",
+        "%%node|HEAD%%\n",
+    ]
+    for case in cases:
+        result = db_node.parse(case)
+        assert result.is_block == True
+
+
+def test_dbnode_whitespace_handling():
+    """Test DB nodes with various whitespace patterns"""
+    # Extra spaces in node_id
+    result = db_node.parse("%%  abc  |123%%\n")
+    assert result.node_id == "abc"
+
+    # Extra spaces in git_version
+    result = db_node.parse("%%abc|  123  %%\n")
+    assert result.git_version == "123"
+
+    # Extra spaces before newline
+    result = db_node.parse("%%abc|123%%     \n")
+    assert result.is_block == True
+
+
+# Error cases
+def test_dbnode_invalid_formats():
+    """Test that invalid formats raise appropriate errors"""
+    invalid_cases = [
+        "%%|123%%\n",  # Missing node_id
+        "%%abc|%%\n",  # Missing git_version
+        "%%abc%%\n",  # Missing separator and git_version
+        "%abc|123%%\n",  # Missing opening %
+        "%%abc|123%\n",  # Missing closing %
+    ]
+    for case in invalid_cases:
+        with pytest.raises(Exception):
+            db_node.parse(case)
+
 
 # --- Inline Element Tests ---
 

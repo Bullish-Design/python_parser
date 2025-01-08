@@ -19,6 +19,8 @@ from python_parser.src.models.datatypes import (
     ObsidianFile,
     MarkdownNode,
     DataType,
+    DB_Node,
+    DB_Node_Tag,
 )
 from python_parser.src.models.parsers import (
     list_item,
@@ -42,6 +44,8 @@ from python_parser.src.models.parsers import (
     reference,
     reference_parser,
     parse_references,
+    db_node,
+    db_node_tag,
     # inline_content,
 )
 
@@ -87,5 +91,7 @@ __all__ = [
     "reference_parser",
     "parse_references",
     "document",
+    "db_node",
+    "db_node_tag",
     # "inline_content",
 ]

@@ -1,6 +1,10 @@
 from typing import List, Dict, Union, Optional, Any
 from abc import ABC, abstractmethod
 from datetime import datetime, date
+import parsy
+from pathlib import Path
+
+from dataclasses import dataclass
 
 from pydantic import BaseModel
 
@@ -96,7 +100,77 @@ class DataType(BaseModel, ABC):
                 raise ValueError(f"Unsupported file type: {file_type}")
 
 
+# TODO:  Make class for content_type obj
+@dataclass
+class ContentType:
+    name: str
+    parser: parsy.Parser
+
+
 # --- AST Node Definitions ---
+class DB_Node_Tag(DataType):
+    """
+    Pydantic model that recognizes a DB Node tag (Hidden obsidian tag - %%{DB_ID}|{Git_VersionMajor.Minor.Patch}%%)
+    """
+
+    node_id: str
+    git_version: str
+    is_block: bool = True  # Is this necessary? Just parse the rest until finding another %%, the type will come with the parsing.
+
+    def to_string(self) -> str:
+        return f"%%{self.node_id}|{self.git_version}%%"
+
+
+class ContentNode(DataType):
+    """
+    A Pydantic model that represents a content node in the AST. A content node consists of an id, content_type (which drives parsing), and content str
+    """
+
+    id: str
+    content_str: str
+    content_type: Optional[ContentType]
+
+    def detect_type(self):
+        # parse the content_str to determine what type it is TODO: figure out how to return Parsy parser type based on sucessful parsing
+        pass
+
+    def create(self):
+        pass
+
+    def read(self):
+        pass
+
+    def update(self):
+        pass
+
+
+class DB_Node(DataType):
+    """
+    Pydantic model that represents the DB Node in the database. consists of a DB_Node_Tag, node_parameters, and content.
+    """
+
+    node_id: str
+    node_parameters: Dict[str, Any]
+    content: ContentNode
+
+    # relationship: For linking the db node to the content node - many to many for reusing nodes across different files (configs, constants, envvars, todo lists, etc.)
+
+    def to_string(self) -> str:
+        # node_tag = f"%%{self.node_tag.node_id}|{self.node_tag.git_version}%%"
+        node_tag = self.node_tag.to_string()
+        node_parameters = "\n".join(
+            [f"{key}: {value}" for key, value in self.node_parameters.items()]
+        )
+        if self.node_tag.is_block:
+            content = f"{node_tag}\n{self.content}\n"
+        else:
+            content = f"{node_tag} {self.content}"
+        file = f"---\n{node_parameters}\n---\n{content}"
+        return file
+
+    def from_file(self, filepath: Path):
+        # Parse a file into a DB object
+        pass
 
 
 class Text(DataType):
