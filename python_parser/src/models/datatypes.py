@@ -359,10 +359,10 @@ class FrontMatter(DataType):
     def date_to_string(self) -> None:
         for key, value in self.content.items():
             if isinstance(value, datetime):
-                print(f"    Found datetime: {value}, converting to string...")
+                # print(f"    Found datetime: {value}, converting to string...")
                 self.content[key] = value.strftime("%Y-%m-%d %H:%M:%S")
             if isinstance(value, date):
-                print(f"    Found date: {value}, converting to string...")
+                # print(f"    Found date: {value}, converting to string...")
                 self.content[key] = value.strftime("%Y-%m-%d")
 
 
