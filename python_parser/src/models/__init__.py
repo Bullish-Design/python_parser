@@ -68,6 +68,8 @@ __all__ = [
     "ObsidianFile",
     "MarkdownNode",
     "DataType",
+    "DB_Node",
+    "DB_Node_Tag",
     # "Bold",
     # "Italic",
     "list_item",
@@ -91,7 +93,7 @@ __all__ = [
     "reference_parser",
     "parse_references",
     "document",
-    "db_node",
+    "db_nodes",
     "db_node_tag",
     # "inline_content",
 ]
