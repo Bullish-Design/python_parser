@@ -77,7 +77,7 @@ def calc_indent_level(spaces: str, n: int) -> int:
 @generate
 def db_node_tag():
     yield optional_spaces
-    initial_newline = yield newline.optional()
+    initial_newline = yield newline.many().optional()
     yield hidden_tag
     node_id = yield regex(r"[^\|\%%]+").map(str) << pipe.optional()
     node_id = node_id.strip()
