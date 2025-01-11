@@ -15,6 +15,7 @@ from python_parser.src.models import (
     FrontMatter,
     Paragraph,
     DB_Node,
+    DB_Node_Tag,
     list_item,
     markdown_parser,
     basic_markdown_parser,
@@ -34,9 +35,13 @@ from python_parser.src.models import (
     code_block,
     document,
     parse_references,
-    db_node,
+    db_node_tag,
+    db_nodes,
     # inline_content,
 )
+# from python_parser.logs.logger import get_logger
+
+# logger = get_logger(__name__)
 
 # from python_parser.src.models import *
 
@@ -128,95 +133,87 @@ from python_parser.src.models.parse_primitives import (
 # --- Test DB_Node functionality ---
 
 
-# Basic format tests
-def test_simple_block_dbnode():
-    """Test basic block DB node format"""
-    result = db_node.parse("%%abc|123%%\n")
-    assert result.node_id == "abc"
-    assert result.git_version == "123"
-    assert result.is_block == True
+def test_db_node_tag_inline():
+    input_text = "%%node1|v1|sample%%Inline content"
+    parsed = db_nodes.parse(input_text)
+    print(f"Parsed Tag: {parsed}")
+    assert parsed.node_id == "node1"
+    assert parsed.git_version == "v1"
+    assert parsed.is_inline is True
 
 
-def test_simple_inline_dbnode():
-    """Test basic inline DB node format"""
-    result = db_node.parse_partial("%%abc|123%% some text")
-    assert result[0].node_id == "abc"
-    assert result[0].git_version == "123"
-    assert result[0].is_block == False
-    assert result[1] == " some text"
+def test_db_node_tag_no_git_version():
+    input_text = "%%nodeOnly%%"
+    parsed = db_nodes.parse(input_text)
+    print(f"Parsed Tag: {parsed}")
+    assert parsed.node_id == "nodeOnly"
+    assert parsed.git_version == ""
+    # By default, if there's no block content or new line, it's considered inline
+    assert parsed.is_inline is True
 
 
-def test_block_dbnode_with_spaces():
-    """Test block DB node with trailing spaces"""
-    result = db_node.parse("%%abc|123%%   \n")
-    assert result.node_id == "abc"
-    assert result.git_version == "123"
-    assert result.is_block == True
+def test_db_node_tag_block_node():
+    input_text = """%%nodeBlock|v2|sample%%
+    Some multiline content
+    """
+    parsed = db_nodes.parse(input_text)
+    print(f"Parsed Tag: {parsed}")
+    assert parsed.node_id == "nodeBlock"
+    assert parsed.git_version == "v2"
+    assert parsed.is_inline is False
 
 
-def test_block_dbnode_at_eof():
-    """Test block DB node at end of file (no newline)"""
-    result = db_node.parse("%%abc|123%%")
-    assert result.node_id == "abc"
-    assert result.git_version == "123"
-    assert result.is_block == True
+def test_db_nodes_single_node():
+    input_text = "%%nodeX|123|sample%%Node content here"
+    parsed_list = db_nodes.parse(input_text)
+    print(f"Parsed List: {parsed_list}")
+    assert len(parsed_list) == 1
+    assert parsed_list[0].node_tag.node_id == "nodeX"
+    assert parsed_list[0].node_tag.git_version == "123"
+    assert "Node content here" in parsed_list[0].content
 
 
-# Edge cases and variations
-def test_dbnode_ids_with_special_chars():
-    """Test DB nodes with various special characters in node_id"""
-    cases = [
-        "%%abc-123|version%%\n",
-        "%%path/to/node|version%%\n",
-        "%%node_with_underscore|version%%\n",
-        "%%node.with.dots|version%%\n",
-    ]
-    for case in cases:
-        result = db_node.parse(case)
-        assert result.is_block == True
+def test_db_nodes_multiple_nodes():
+    input_text = (
+        "%%nodeA|vA|sample%%Content A%%nodeB|vB|sample%%Content B\n"
+        "%%nodeC|vC|sample%%Content C"
+    )
+    parsed_list = db_nodes.parse(input_text)
+    print(f"Parsed List: {parsed_list}")
+    assert len(parsed_list) == 3
+
+    assert parsed_list[0].node_tag.node_id == "nodeA"
+    assert parsed_list[0].node_tag.git_version == "vA"
+    assert "Content A" in parsed_list[0].content
+
+    assert parsed_list[1].node_tag.node_id == "nodeB"
+    assert parsed_list[1].node_tag.git_version == "vB"
+    assert "Content B" in parsed_list[1].content
+
+    assert parsed_list[2].node_tag.node_id == "nodeC"
+    assert parsed_list[2].node_tag.git_version == "vC"
+    assert "Content C" in parsed_list[2].content
 
 
-def test_dbnode_git_versions_with_special_chars():
-    """Test DB nodes with various git version formats"""
-    cases = [
-        "%%node|a1b2c3d%%\n",
-        "%%node|feature/branch-name%%\n",
-        "%%node|v1.2.3%%\n",
-        "%%node|HEAD%%\n",
-    ]
-    for case in cases:
-        result = db_node.parse(case)
-        assert result.is_block == True
+def test_db_nodes_block_and_inline():
+    input_text = (
+        "%%inline|v1|sample%%Inline content\n"
+        "%%block|v2|sample%%\n"
+        "Block content on next line\n"
+        "%%inline2|v3|sample%%Another inline"
+    )
+    parsed_list = db_nodes.parse(input_text)
+    print(f"Parsed List: {parsed_list}")
+    assert len(parsed_list) == 3
 
+    assert parsed_list[0].node_tag.is_inline is True
+    assert "Inline content" in parsed_list[0].content
 
-def test_dbnode_whitespace_handling():
-    """Test DB nodes with various whitespace patterns"""
-    # Extra spaces in node_id
-    result = db_node.parse("%%  abc  |123%%\n")
-    assert result.node_id == "abc"
+    assert parsed_list[1].node_tag.is_inline is False
+    assert "Block content on next line" in parsed_list[1].content
 
-    # Extra spaces in git_version
-    result = db_node.parse("%%abc|  123  %%\n")
-    assert result.git_version == "123"
-
-    # Extra spaces before newline
-    result = db_node.parse("%%abc|123%%     \n")
-    assert result.is_block == True
-
-
-# Error cases
-def test_dbnode_invalid_formats():
-    """Test that invalid formats raise appropriate errors"""
-    invalid_cases = [
-        "%%|123%%\n",  # Missing node_id
-        "%%abc|%%\n",  # Missing git_version
-        "%%abc%%\n",  # Missing separator and git_version
-        "%abc|123%%\n",  # Missing opening %
-        "%%abc|123%\n",  # Missing closing %
-    ]
-    for case in invalid_cases:
-        with pytest.raises(Exception):
-            db_node.parse(case)
+    assert parsed_list[2].node_tag.is_inline is True
+    assert "Another inline" in parsed_list[2].content
 
 
 # --- Inline Element Tests ---

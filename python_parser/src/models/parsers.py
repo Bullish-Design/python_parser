@@ -58,6 +58,9 @@ from python_parser.src.models.datatypes import (
     DB_Node,
 )
 
+from python_parser.logs.logger import get_logger
+
+logger = get_logger(__name__)
 
 # --- Inline Level Parsers ---
 
@@ -76,36 +79,53 @@ def calc_indent_level(spaces: str, n: int) -> int:
 # DB Node parser:
 @generate
 def db_node_tag():
+    """Parser for DB node tags"""
+    logger.info(f"  Parsing DB Node Tag...")
     yield optional_spaces
     initial_newline = yield newline.many().optional()
     yield hidden_tag
     node_id = yield regex(r"[^\|\%%]+").map(str) << pipe.optional()
     node_id = node_id.strip()
-    git_version = yield regex(r"[^\%%]+").map(str).optional()
+    logger.info(f"    Node ID: {node_id}")
+
+    git_version = yield regex(r"[^\|\%%]+").map(str).optional() << pipe.optional()
     git_version = git_version.strip()
+    logger.info(f"    Git Version: {git_version}")
+
+    node_type = yield regex(r"[^\%%]+").map(str).optional()
+    logger.info(f"    Node Type: {node_type}")
     yield hidden_tag
 
     # Check if this is a block node by looking for only whitespace then newline or EOF
-    try:
-        spaces = yield optional_spaces
-        output = yield (newline | eof).optional()
-        if output:
-            is_inline = False
-    except:
-        is_inline = True
+    # is_inline = False
+    # try:
+    #    spaces = yield optional_spaces
+    #    output = yield (newline | eof).optional()
+    #    if output:
+    #        print(f"  Found block")
+    #        is_inline = False
+    # except:
+    #    print(f"  Found inline")
+    #    is_inline = True
 
-    return DB_Node_Tag(node_id=node_id, git_version=git_version, is_inline=is_inline)
+    return DB_Node_Tag(node_id=node_id, git_version=git_version, node_type=node_type)
 
 
 @generate
 def db_nodes():
     """Parser for DB nodes"""
     file_nodes = []
+    logger.info(f"Parsing DB Nodes...")
+    count = 0
     while True:
         try:
+            count += 1
             node_tag = yield db_node_tag
+            logger.info(f"  Node Tag {count}: {node_tag}")
             content = yield regex(r"[^\%%]+").map(str).optional()
+            logger.info(f"  Content: {content}")
             file_node = DB_Node(node_tag=node_tag, content=content)
+            logger.info(f"  File Node {count}: {file_node}")
             file_nodes.append(file_node)
             # if content:
             #    file_nodes[node_tag] = content
@@ -113,6 +133,7 @@ def db_nodes():
             #    file_nodes[node_tag] = None
         except:
             break
+    logger.info(f"  File Nodes: {file_nodes}")
     # node_tag = yield db_node_tag
     # content_str = yield regex(r"[^\%%]+").map(str).optional()
     # if content_str:

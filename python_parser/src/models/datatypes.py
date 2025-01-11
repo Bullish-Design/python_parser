@@ -120,10 +120,11 @@ class DB_Node_Tag(DataType):
 
     node_id: str
     git_version: str
-    is_inline: bool = False  # Is this necessary? Nested content would be easier to handle with an explicit inline/block tag callout. Does it need more node types?
+    node_type: str
+    # is_inline: bool = False  # Is this necessary? Nested content would be easier to handle with an explicit inline/block tag callout. Does it need more node types?
 
     def to_string(self) -> str:
-        return f"%%{self.node_id}|{self.git_version}%%"
+        return f"%%{self.node_id}|{self.git_version}|{self.node_type}%%"
 
 
 class ContentNode(DataType):
