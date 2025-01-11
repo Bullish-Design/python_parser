@@ -158,14 +158,15 @@ class DB_Node(DataType):
     Pydantic model that represents the DB Node in the database. consists of a DB_Node_Tag, node_parameters, and content.
     """
 
-    id: str
+    # id: str
     node_tag: DB_Node_Tag
-    node_parameters: Dict[
-        str, Any
-    ]  # File Frontmatter - block comment if code file, frontmatter if markdown
-    content: List[
-        ContentNode
-    ]  # TODO: Have another relationship lookup for a one-to-many relationship between the node and the list of contentNodes?
+    content: Optional[str]
+    # node_parameters: Dict[
+    #    str, Any
+    # ]  # File Frontmatter - block comment if code file, frontmatter if markdown
+    # content: List[
+    #    ContentNode
+    # ]  # TODO: Have another relationship lookup for a one-to-many relationship between the node and the list of contentNodes?
 
     ## Relationships:
     # TODO: relationship: For linking the db node to the content node - many to many for reusing nodes across different files (configs, constants, envvars, todo lists, etc.)
@@ -174,14 +175,14 @@ class DB_Node(DataType):
     def to_string(self) -> str:
         # node_tag = f"%%{self.node_tag.node_id}|{self.node_tag.git_version}%%"
         node_tag = self.node_tag.to_string()
-        node_parameters = "\n".join(
-            [f"{key}: {value}" for key, value in self.node_parameters.items()]
-        )
-        if self.node_tag.is_block:
-            content = f"{node_tag}\n{self.content}\n"
-        else:
-            content = f"{node_tag} {self.content}"
-        file = f"---\n{node_parameters}\n---\n{content}"
+        # node_parameters = "\n".join(
+        #    [f"{key}: {value}" for key, value in self.node_parameters.items()]
+        # )
+        # if self.node_tag.is_block:
+        #    content = f"{node_tag}\n{self.content}\n"
+        # else:
+        #    content = f"{node_tag} {self.content}"
+        file = f"---\n{node_tag}\n---\n{self.content}"
         return file
 
     def from_file(self, filepath: Path):
@@ -372,6 +373,76 @@ class ObsidianFileBase(DataType):
     """
 
     frontmatter: FrontMatter
+    content: str
+
+    def to_string(self) -> str:
+        return f"{self.frontmatter.to_string()}\n{self.content}"
+
+    def write(self, file_path: str) -> None:
+        with open(file_path, "w") as file:
+            file.write(self.to_string())
+
+
+class PythonFrontMatter(DataType):
+    """
+    Base Pydantic model for a Python file's frontmatter. Same structure as Obsidian frontmatter, but using triple quotes as the delimiter.
+
+    parameters: Dict[str, Any]
+
+    """
+
+    parameters: Dict[str, Any]
+
+    def to_string(self) -> str:
+        return (
+            '"""\n'
+            + "\n".join([f"{key}: {value}" for key, value in self.parameters.items()])
+            + '\n"""'
+        )
+
+    def add(self, key: str, value: Any) -> None:
+        self.parameters[key] = value
+
+    def remove(self, key: str) -> None:
+        if key in self.parameters:
+            del self.parameters[key]
+
+    def update(self, key: str, value: Any) -> None:
+        if key in self.parameters:
+            self.parameters[key] = value
+
+    def date_to_string(self) -> None:
+        for key, value in self.parameters.items():
+            if isinstance(value, datetime):
+                # print(f"    Found datetime: {value}, converting to string...")
+                self.parameters[key] = value.strftime("%Y-%m-%d %H:%M:%S")
+            if isinstance(value, date):
+                # print(f"    Found date: {value}, converting to string...")
+                self.parameters[key] = value.strftime("%Y-%m-%d")
+
+
+class PythonFileBase(DataType):
+    """
+    Base Pydantic model for a Python file.
+    """
+
+    frontmatter: PythonFrontMatter
+    content: str
+
+    def to_string(self) -> str:
+        return f"{self.frontmatter.to_string()}\n{self.content}"
+
+    def write(self, file_path: str) -> None:
+        with open(file_path, "w") as file:
+            file.write(self.to_string())
+
+
+class FileBase(DataType):
+    """
+    Base Pydantic model for a file. Contains a frontmatter and a content attribute.
+    """
+
+    frontmatter: Union[FrontMatter, PythonFrontMatter]
     content: str
 
     def to_string(self) -> str:

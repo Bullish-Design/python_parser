@@ -54,6 +54,7 @@ from python_parser.src.models.datatypes import (
     Callout,
     Paragraph,
     ObsidianMarkdownContent,
+    DB_Node_Tag,
     DB_Node,
 )
 
@@ -76,7 +77,7 @@ def calc_indent_level(spaces: str, n: int) -> int:
 @generate
 def db_node_tag():
     yield optional_spaces
-    yield newline.optional()
+    initial_newline = yield newline.optional()
     yield hidden_tag
     node_id = yield regex(r"[^\|\%%]+").map(str) << pipe.optional()
     node_id = node_id.strip()
@@ -89,22 +90,36 @@ def db_node_tag():
         spaces = yield optional_spaces
         output = yield (newline | eof).optional()
         if output:
-            is_block = True
+            is_inline = False
     except:
-        is_block = False
+        is_inline = True
 
-    return DB_Node_Tag(node_id=node_id, git_version=git_version)
+    return DB_Node_Tag(node_id=node_id, git_version=git_version, is_inline=is_inline)
 
 
 @generate
-def db_node():
-    node_tag = yield db_node_tag
-    content_str = yield regex(r"[^\%%]+").map(str).optional()
-    if content_str:
-        content = content_str
-    else:
-        content = None
-    return content
+def db_nodes():
+    """Parser for DB nodes"""
+    file_nodes = []
+    while True:
+        try:
+            node_tag = yield db_node_tag
+            content = yield regex(r"[^\%%]+").map(str).optional()
+            file_node = DB_Node(node_tag=node_tag, content=content)
+            file_nodes.append(file_node)
+            # if content:
+            #    file_nodes[node_tag] = content
+            # else:
+            #    file_nodes[node_tag] = None
+        except:
+            break
+    # node_tag = yield db_node_tag
+    # content_str = yield regex(r"[^\%%]+").map(str).optional()
+    # if content_str:
+    #    content = content_str
+    # else:
+    #    content = None
+    return file_nodes  # content
 
 
 # Parser for list items
