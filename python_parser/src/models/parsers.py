@@ -83,18 +83,18 @@ def db_node_tag():
     # logger.info(f"  Parsing DB Node Tag...")
     # yield optional_spaces
     # initial_newline = yield newline.optional()
-    initial_text = yield regex(r"[^\%%]+").map(str).optional()
+    initial_text = yield regex(r"[^\%{2}]+").map(str).optional()
     yield hidden_tag
-    node_id = yield regex(r"[^\|\%%]+").map(str) << pipe.optional()
+    node_id = yield regex(r"[^\|\%{2}]+").map(str) << pipe.optional()
     node_id = node_id.strip()
     # logger.info(f"    Node ID: {node_id}")
 
-    git_version = yield regex(r"[^\|\%%]+").map(str).optional() << pipe.optional()
+    git_version = yield regex(r"[^\|\%{2}]+").map(str).optional() << pipe.optional()
     if git_version:
         git_version = git_version.strip()
     # logger.info(f"    Git Version: {git_version}")
 
-    node_type = yield regex(r"[^\%%]+").map(str).optional()
+    node_type = yield regex(r"[^\%{2}]+").map(str).optional()
     if node_type:
         node_type = node_type.strip()
     # logger.info(f"    Node Type: {node_type}")
@@ -140,7 +140,7 @@ def db_node():
     #        return file_nodes
     # except:
     #    continue
-    content = yield regex(r"[^\%%]+").map(str).optional()  # .until(eof)
+    content = yield regex(r"[^\%{2}]+").map(str).optional()  # .until(eof)
     # logger.info(f"  Content: {content}")
     # if not content:
     # content = None
