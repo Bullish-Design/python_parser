@@ -39,9 +39,9 @@ from python_parser.src.models import (
     db_nodes,
     # inline_content,
 )
-from python_parser.logs.logger import get_logger
+# from python_parser.logs.logger import get_logger
 
-logger = get_logger(__name__)
+# logger = get_logger(__name__)
 
 # from python_parser.src.models import *
 

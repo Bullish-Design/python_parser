@@ -58,9 +58,9 @@ from python_parser.src.models.datatypes import (
     DB_Node,
 )
 
-from python_parser.logs.logger import get_logger
+# from python_parser.logs.logger import get_logger
 
-logger = get_logger(__name__)
+# logger = get_logger(__name__)
 
 # --- Inline Level Parsers ---
 
