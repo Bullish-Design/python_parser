@@ -122,7 +122,7 @@ non_node = regex(r"[^\%%]+") | eof
 def db_node():
     """Parser for DB nodes"""
     # file_nodes = []
-    logger.info(f"Parsing DB Node...")
+    # logger.info(f"Parsing DB Node...")
     count = 0
     # while True:
     #    try:
@@ -131,7 +131,7 @@ def db_node():
     #    return file_nodes
     #        count += 1
     node_tag = yield db_node_tag
-    logger.info(f"  Node Tag: {node_tag}")
+    # logger.info(f"  Node Tag: {node_tag}")
     # try:
     #    file_end = yield eof  # .optional()
     #    if file_end:
@@ -141,7 +141,7 @@ def db_node():
     # except:
     #    continue
     content = yield regex(r"[^\%%]+").map(str).optional()  # .until(eof)
-    logger.info(f"  Content: {content}")
+    # logger.info(f"  Content: {content}")
     # if not content:
     # content = None
     # logger.info(f"  Content: {content}")
@@ -154,7 +154,7 @@ def db_node():
     #    file_nodes[node_tag] = None
     #    except:
     #        break
-    logger.info(f"  File Node: {file_node}")
+    # logger.info(f"  File Node: {file_node}")
     # node_tag = yield db_node_tag
     # content_str = yield regex(r"[^\%%]+").map(str).optional()
     # if content_str:
