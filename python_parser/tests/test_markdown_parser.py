@@ -39,9 +39,9 @@ from python_parser.src.models import (
     db_nodes,
     # inline_content,
 )
-# from python_parser.logs.logger import get_logger
+from python_parser.logs.logger import get_logger
 
-# logger = get_logger(__name__)
+logger = get_logger(__name__)
 
 # from python_parser.src.models import *
 
@@ -134,39 +134,46 @@ from python_parser.src.models.parse_primitives import (
 
 
 def test_db_node_tag_inline():
-    input_text = "%%node1|v1|sample%%Inline content"
-    parsed = db_nodes.parse(input_text)
-    print(f"Parsed Tag: {parsed}")
+    logger.info("Testing DB_Node_Tag Inline")
+    input_text = "%%node1|v1|sample%%"
+    parsed = db_node_tag.parse(input_text)
+    logger.info(f"  Parsed Tag: {parsed}")
     assert parsed.node_id == "node1"
     assert parsed.git_version == "v1"
-    assert parsed.is_inline is True
+    assert parsed.node_type == "sample"
 
 
 def test_db_node_tag_no_git_version():
+    logger.info("Testing DB_Node_Tag No Git Version")
     input_text = "%%nodeOnly%%"
-    parsed = db_nodes.parse(input_text)
-    print(f"Parsed Tag: {parsed}")
+    parsed = db_node_tag.parse(input_text)
+    logger.info(f"  Parsed Tag: {parsed}")
     assert parsed.node_id == "nodeOnly"
-    assert parsed.git_version == ""
+    assert parsed.git_version == None
     # By default, if there's no block content or new line, it's considered inline
-    assert parsed.is_inline is True
+    assert parsed.node_type == None
 
 
 def test_db_node_tag_block_node():
-    input_text = """%%nodeBlock|v2|sample%%
+    logger.info("Testing DB_Node_Tag Block Node")
+    input_text = """
+
+    %%nodeBlock|v2|sample%%
     Some multiline content
     """
-    parsed = db_nodes.parse(input_text)
-    print(f"Parsed Tag: {parsed}")
-    assert parsed.node_id == "nodeBlock"
-    assert parsed.git_version == "v2"
-    assert parsed.is_inline is False
+    parsed = db_nodes.parse(input_text)[0]
+    logger.info(f"  Parsed Tag: {parsed}")
+    assert parsed.node_tag.node_id == "nodeBlock"
+    assert parsed.node_tag.git_version == "v2"
+    assert parsed.node_tag.node_type == "sample"
+    assert parsed.content == "\n    Some multiline content\n    "
 
 
 def test_db_nodes_single_node():
+    logger.info("Testing DB_Nodes Single Node")
     input_text = "%%nodeX|123|sample%%Node content here"
     parsed_list = db_nodes.parse(input_text)
-    print(f"Parsed List: {parsed_list}")
+    logger.info(f"  Parsed List: {parsed_list}")
     assert len(parsed_list) == 1
     assert parsed_list[0].node_tag.node_id == "nodeX"
     assert parsed_list[0].node_tag.git_version == "123"
@@ -174,12 +181,13 @@ def test_db_nodes_single_node():
 
 
 def test_db_nodes_multiple_nodes():
+    logger.info("Testing DB_Nodes Multiple Nodes")
     input_text = (
         "%%nodeA|vA|sample%%Content A%%nodeB|vB|sample%%Content B\n"
         "%%nodeC|vC|sample%%Content C"
     )
     parsed_list = db_nodes.parse(input_text)
-    print(f"Parsed List: {parsed_list}")
+    logger.info(f"  Parsed List: {parsed_list}")
     assert len(parsed_list) == 3
 
     assert parsed_list[0].node_tag.node_id == "nodeA"
@@ -196,6 +204,7 @@ def test_db_nodes_multiple_nodes():
 
 
 def test_db_nodes_block_and_inline():
+    logger.info("Testing DB_Nodes Block and Inline")
     input_text = (
         "%%inline|v1|sample%%Inline content\n"
         "%%block|v2|sample%%\n"
@@ -203,16 +212,16 @@ def test_db_nodes_block_and_inline():
         "%%inline2|v3|sample%%Another inline"
     )
     parsed_list = db_nodes.parse(input_text)
-    print(f"Parsed List: {parsed_list}")
+    logger.info(f"  Parsed List: {parsed_list}")
     assert len(parsed_list) == 3
 
-    assert parsed_list[0].node_tag.is_inline is True
+    assert parsed_list[0].node_tag.node_type == "sample"
     assert "Inline content" in parsed_list[0].content
 
-    assert parsed_list[1].node_tag.is_inline is False
+    assert parsed_list[1].node_tag.node_type == "sample"
     assert "Block content on next line" in parsed_list[1].content
 
-    assert parsed_list[2].node_tag.is_inline is True
+    assert parsed_list[2].node_tag.node_type == "sample"
     assert "Another inline" in parsed_list[2].content
 
 

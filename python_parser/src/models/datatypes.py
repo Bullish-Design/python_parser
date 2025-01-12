@@ -119,8 +119,8 @@ class DB_Node_Tag(DataType):
     """
 
     node_id: str
-    git_version: str
-    node_type: str
+    git_version: Optional[str]
+    node_type: Optional[str]
     # is_inline: bool = False  # Is this necessary? Nested content would be easier to handle with an explicit inline/block tag callout. Does it need more node types?
 
     def to_string(self) -> str:
@@ -133,7 +133,7 @@ class ContentNode(DataType):
     """
 
     id: str
-    content_str: str
+    content_str: Optional[str]
     content_type: Optional[ContentType]  # For parsing to/generating from the database.
 
     # TODO: Look at making the DataType obj require a "parse" function? And include a Parsy parser attribute in the class definition?

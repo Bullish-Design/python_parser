@@ -58,9 +58,9 @@ from python_parser.src.models.datatypes import (
     DB_Node,
 )
 
-# from python_parser.logs.logger import get_logger
+from python_parser.logs.logger import get_logger
 
-# logger = get_logger(__name__)
+logger = get_logger(__name__)
 
 # --- Inline Level Parsers ---
 
@@ -81,18 +81,22 @@ def calc_indent_level(spaces: str, n: int) -> int:
 def db_node_tag():
     """Parser for DB node tags"""
     # logger.info(f"  Parsing DB Node Tag...")
-    yield optional_spaces
-    initial_newline = yield newline.many().optional()
+    # yield optional_spaces
+    # initial_newline = yield newline.optional()
+    initial_text = yield regex(r"[^\%%]+").map(str).optional()
     yield hidden_tag
     node_id = yield regex(r"[^\|\%%]+").map(str) << pipe.optional()
     node_id = node_id.strip()
     # logger.info(f"    Node ID: {node_id}")
 
     git_version = yield regex(r"[^\|\%%]+").map(str).optional() << pipe.optional()
-    git_version = git_version.strip()
+    if git_version:
+        git_version = git_version.strip()
     # logger.info(f"    Git Version: {git_version}")
 
     node_type = yield regex(r"[^\%%]+").map(str).optional()
+    if node_type:
+        node_type = node_type.strip()
     # logger.info(f"    Node Type: {node_type}")
     yield hidden_tag
 
@@ -111,36 +115,62 @@ def db_node_tag():
     return DB_Node_Tag(node_id=node_id, git_version=git_version, node_type=node_type)
 
 
+non_node = regex(r"[^\%%]+") | eof
+
+
 @generate
-def db_nodes():
+def db_node():
     """Parser for DB nodes"""
-    file_nodes = []
-    # logger.info(f"Parsing DB Nodes...")
+    # file_nodes = []
+    logger.info(f"Parsing DB Node...")
     count = 0
-    while True:
-        try:
-            count += 1
-            node_tag = yield db_node_tag
-            # logger.info(f"  Node Tag {count}: {node_tag}")
-            content = yield regex(r"[^\%%]+").map(str).optional()
-            # logger.info(f"  Content: {content}")
-            file_node = DB_Node(node_tag=node_tag, content=content)
-            # logger.info(f"  File Node {count}: {file_node}")
-            file_nodes.append(file_node)
-            # if content:
-            #    file_nodes[node_tag] = content
-            # else:
-            #    file_nodes[node_tag] = None
-        except:
-            break
-    # logger.info(f"  File Nodes: {file_nodes}")
+    # while True:
+    #    try:
+    # file_end = yield eof.optional()
+    # if file_end:
+    #    return file_nodes
+    #        count += 1
+    node_tag = yield db_node_tag
+    logger.info(f"  Node Tag: {node_tag}")
+    # try:
+    #    file_end = yield eof  # .optional()
+    #    if file_end:
+    #        file_node = DB_Node(node_tag=node_tag, content=None)
+    #        file_nodes.append(file_node)
+    #        return file_nodes
+    # except:
+    #    continue
+    content = yield regex(r"[^\%%]+").map(str).optional()  # .until(eof)
+    logger.info(f"  Content: {content}")
+    # if not content:
+    # content = None
+    # logger.info(f"  Content: {content}")
+    file_node = DB_Node(node_tag=node_tag, content=content)
+    # logger.info(f"  File Node {count}: {file_node}")
+    # file_nodes.append(file_node)
+    # if content:
+    #    file_nodes[node_tag] = content
+    # else:
+    #    file_nodes[node_tag] = None
+    #    except:
+    #        break
+    logger.info(f"  File Node: {file_node}")
     # node_tag = yield db_node_tag
     # content_str = yield regex(r"[^\%%]+").map(str).optional()
     # if content_str:
     #    content = content_str
     # else:
     #    content = None
-    return file_nodes  # content
+    return file_node  # content
+
+
+# Parser for many db_nodes
+@generate
+def db_nodes():
+    """Parser for multiple DB nodes"""
+    nodes = yield db_node.many() << eof
+
+    return nodes
 
 
 # Parser for list items
