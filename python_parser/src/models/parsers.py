@@ -39,6 +39,8 @@ from python_parser.src.models.parse_primitives import (
     triple_backtick,
     blank_line,
     hidden_tag,
+    python_frontmatter_delimiter,
+    python_frontmatter_content,
 )
 
 from python_parser.src.models.datatypes import (
@@ -57,6 +59,8 @@ from python_parser.src.models.datatypes import (
     ObsidianMarkdownContent,
     DB_Node_Tag,
     DB_Node,
+    PythonFrontMatter,
+    PythonFileBase,
 )
 
 # from python_parser.logs.logger import get_logger
@@ -101,6 +105,15 @@ def db_node_tag():
     # logger.info(f"    Node Type: {node_type}")
     yield hidden_tag
     return DB_Node_Tag(node_id=node_id, git_version=git_version, node_type=node_type)
+
+
+@generate
+def section():
+    """Parser for file sections"""
+    node_tag = yield db_node_tag
+    rest_of_section = yield content
+    section_node = DB_Node(node_tag=node_tag, content=rest_of_section)
+    return section_node
 
 
 @generate
@@ -284,6 +297,17 @@ def parse_frontmatter(frontmatter_content: str) -> FrontMatter:
     return FrontMatter(content=parsed_yaml)
 
 
+def parse_python_frontmatter(frontmatter_content: str) -> PythonFrontMatter:
+    """Parse frontmatter content"""
+    try:
+        parsed_yaml = yaml.safe_load(frontmatter_content)
+        if not parsed_yaml:
+            parsed_yaml = {}
+    except yaml.YAMLError:
+        parsed_yaml = {}
+    return PythonFrontMatter(content=parsed_yaml)
+
+
 @generate
 def front_matter():
     # print(f">> Starting front_matter...")
@@ -296,6 +320,17 @@ def front_matter():
     yield frontmatter_delimiter << newline
 
     parsed_frontmatter = parse_frontmatter(frontmatter_content=frontmatter)
+    return parsed_frontmatter
+
+
+# Frontmatter for python files (i.e. - Docstring comment)
+@generate
+def python_frontmatter():
+    yield python_frontmatter_delimiter
+    yield newline
+    frontmatter = yield python_frontmatter_content << newline
+    yield python_frontmatter_delimiter
+    parsed_frontmatter = parse_python_frontmatter(frontmatter_content=frontmatter)
     return parsed_frontmatter
 
 
@@ -315,6 +350,13 @@ def basic_markdown_parser():
     file_content = yield content.desc("Content")
 
     return ObsidianFileBase(frontmatter=parsed_frontmatter, content=file_content)
+
+
+@generate
+def basic_python_parser():
+    parsed_frontmatter = yield python_frontmatter.optional()
+    file_content = yield content.desc("Content")
+    return PythonFileBase(frontmatter=parsed_frontmatter, content=file_content)
 
 
 ## Headers

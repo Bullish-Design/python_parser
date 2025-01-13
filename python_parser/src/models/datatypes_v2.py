@@ -25,6 +25,10 @@ from python_parser.src.models import (
     DB_Node,
     DB_Node_Tag,
     ObsidianFileBase,
+    PythonFrontMatter,
+    PythonFileBase,
+    PythonFile,
+    ObsidianFile,
     list_item,
     markdown_parser,
     basic_markdown_parser,
@@ -46,6 +50,9 @@ from python_parser.src.models import (
     parse_references,
     db_node_tag,
     db_nodes,
+    basic_python_parser,
+    python_frontmatter,
+    section,
 )
 
 # from python_parser.logs.logger import get_logger
@@ -64,27 +71,19 @@ class Parser(BaseModel, Generic[DataType]):
 
     parser: parsy.Parser
     data_type: Type[DataType]
-    class_registry: ClassVar[Dict[str, "ParserBase"]] = {}
+    class_registry: ClassVar[Dict[str, "Parser"]] = {}
 
     class Config:
         arbitrary_types_allowed = True
 
     def __init__(self, **data):
         super().__init__(**data)
-
-        # logger.info(
-        #    f"INITIALIZING PYDANTIC PARSER: Type: {type(self)} - {self.data_type.__class__.__name__}\n\n{data}\n"
-        # )
         self.__class__.class_registry[self.data_type.__name__] = self
 
     @classmethod
     def get_parser(cls, data_type: str) -> Optional["Parser"]:
         """Get a parser instance for the given data type from the registry."""
         return cls.class_registry.get(data_type)
-
-    def __call__(self, text: str) -> DataType:
-        """Parse the input text using this parser."""
-        return self.parser.parse(text)
 
     @classmethod
     def parse(cls, data_type: Union[Type[DataType], str], text: str) -> DataType:
@@ -101,13 +100,17 @@ class Parser(BaseModel, Generic[DataType]):
         Raises:
             KeyError: If no parser is registered for the given data type
         """
-        if isinstance(data_type, Type[DataType]):
-            data_type = data_type.__name__
 
+        if not isinstance(data_type, str):
+            data_type = data_type.__name__
         parser = cls.get_parser(data_type)
         if parser is None:
-            raise KeyError(f"No parser registered for type {data_type.__name__}")
+            raise KeyError(f"No parser registered for type {data_type}")
         return parser(text)
+
+    def __call__(self, text: str) -> DataType:
+        """Parse the input text using this parser."""
+        return self.parser.parse(text)
 
 
 # Constants --------------------------------
@@ -166,13 +169,22 @@ Utilize LLM agents as semi-smart "text-expander" functionality.
 """
 
 
-class FileParser(Parser[ObsidianFileBase]):
+class ObsidianFileParser(Parser[ObsidianFile]):
     """
     Parser for Obsidian files.
     """
 
     parser: parsy.Parser = basic_markdown_parser
-    data_type: Type[ObsidianFileBase] = Field(default=ObsidianFileBase)
+    data_type: Type[ObsidianFile] = Field(default=ObsidianFile)
+
+
+class PythonFileParser(Parser[PythonFile]):
+    """
+    Parser for Obsidian files.
+    """
+
+    parser: parsy.Parser = basic_markdown_parser
+    data_type: Type[PythonFile] = Field(default=PythonFile)
 
 
 """
@@ -203,7 +215,8 @@ class FrontMatterParser(Parser[FrontMatter]):
 
 
 database_parsers = [
-    FileParser(),
+    ObsidianFileParser(),
+    PythonFileParser(),
     HeaderParser(),
     FrontMatterParser(),
 ]
@@ -220,7 +233,7 @@ def test_datatypes():
 
     # parsed_output = file_parser(text=test_file)
 
-    print(f"\n\nTesting Parser:\n")
+    # print(f"\n\nTesting Parser:\n")
     # print(f"\n{parsed_output}\n\n")
     print(f"\n\nTesting Generic Parser:\n")
-    print(f"\n{Parser.parse(f"ObsidianFileBase", test_file)}\n\n")
+    print(f"\n{Parser.parse("ObsidianFile", test_file)}\n\n")

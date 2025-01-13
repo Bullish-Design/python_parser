@@ -384,6 +384,22 @@ class ObsidianFileBase(DataType):
             file.write(self.to_string())
 
 
+class ObsidianFile(DataType):
+    """
+    Base Pydantic model for an Obsidian Markdown file.
+    """
+
+    frontmatter: FrontMatter
+    content: str
+
+    def to_string(self) -> str:
+        return f"{self.frontmatter.to_string()}\n{self.content}"
+
+    def write(self, file_path: str) -> None:
+        with open(file_path, "w") as file:
+            file.write(self.to_string())
+
+
 class PythonFrontMatter(DataType):
     """
     Base Pydantic model for a Python file's frontmatter. Same structure as Obsidian frontmatter, but using triple quotes as the delimiter.
@@ -423,6 +439,22 @@ class PythonFrontMatter(DataType):
 
 
 class PythonFileBase(DataType):
+    """
+    Base Pydantic model for a Python file.
+    """
+
+    frontmatter: PythonFrontMatter
+    content: str
+
+    def to_string(self) -> str:
+        return f"{self.frontmatter.to_string()}\n{self.content}"
+
+    def write(self, file_path: str) -> None:
+        with open(file_path, "w") as file:
+            file.write(self.to_string())
+
+
+class PythonFile(DataType):
     """
     Base Pydantic model for a Python file.
     """
@@ -483,17 +515,17 @@ class ObsidianMarkdownContent(DataType):
         return "\n".join([node.to_string() for node in self.nodes])
 
 
-class ObsidianFile(DataType):
-    """
-    Represents an Obsidian Markdown file.
-    """
-
-    frontmatter: FrontMatter
-    content: ObsidianMarkdownContent
-
-    def to_string(self) -> str:
-        return f"{self.frontmatter.to_string()}\n{self.content.to_string()}"
-
-    def write(self, file_path: str) -> None:
-        with open(file_path, "w") as file:
-            file.write(self.to_string())
+# class ObsidianFile(DataType):
+#    """
+#    Represents an Obsidian Markdown file.
+#    """
+#
+#    frontmatter: FrontMatter
+#    content: ObsidianMarkdownContent
+#
+#    def to_string(self) -> str:
+#        return f"{self.frontmatter.to_string()}\n{self.content.to_string()}"
+#
+#    def write(self, file_path: str) -> None:
+#        with open(file_path, "w") as file:
+#            file.write(self.to_string())

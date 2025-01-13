@@ -54,12 +54,16 @@ indented_line = optional_spaces >> line_content << newline
 # Common sequences
 triple_dash = string("---")
 frontmatter_delimiter = triple_dash.desc("Frontmatter Delimiter")
+triple_quote = string('"""')
+python_frontmatter_delimiter = triple_quote.desc("Python Frontmatter Delimiter")
 
 triple_backtick = string("```")
 
 # Parser to capture everything up to the next '---' (frontmatter content)
 front_matter_content = regex(r"(?s).*?(?=\n---)").desc("Frontmatter Content")
-
+python_frontmatter_content = regex(r"(?s).*?(?=\n\"\"\")").desc(
+    "Python Frontmatter Content"
+)
 # Callouts
 callout_start = (
     greater_than
