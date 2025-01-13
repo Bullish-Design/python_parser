@@ -83,92 +83,35 @@ non_tag = hidden_tag | any_char  # regex(r"[^\%%]+") | eof
 def db_node_tag():
     """Parser for DB node tags"""
     # logger.info(f"  Parsing DB Node Tag...")
-    # yield optional_spaces
-    # initial_newline = yield newline.optional()
     initial_text = yield regex(r"(?:[^\%]|%(?!%))+").map(str).optional()
-    # initial_text = any_char.many().until(hidden_tag)  # .optional()
+    # logger.info(f"    Initial Text: {initial_text}")
     yield hidden_tag
     node_id = yield regex(r"(?:[^\|%]|%(?!%))+").map(str) << pipe.optional()
-    # node_id = yield (
-    #    any_char.many().until(pipe) | any_char.many().until(hidden_tag)
-    # ).map(str)
     node_id = node_id.strip()
     # logger.info(f"    Node ID: {node_id}")
-
     git_version = (
         yield regex(r"(?:[^\|%]|%(?!%))+").map(str).optional() << pipe.optional()
     )
     if git_version:
         git_version = git_version.strip()
     # logger.info(f"    Git Version: {git_version}")
-
     node_type = yield regex(r"(?:[^\%]|%(?!%))+").map(str).optional()
     if node_type:
         node_type = node_type.strip()
     # logger.info(f"    Node Type: {node_type}")
     yield hidden_tag
-
-    # Check if this is a block node by looking for only whitespace then newline or EOF
-    # is_inline = False
-    # try:
-    #    spaces = yield optional_spaces
-    #    output = yield (newline | eof).optional()
-    #    if output:
-    #        print(f"  Found block")
-    #        is_inline = False
-    # except:
-    #    print(f"  Found inline")
-    #    is_inline = True
-
     return DB_Node_Tag(node_id=node_id, git_version=git_version, node_type=node_type)
 
 
 @generate
 def db_node():
     """Parser for DB nodes"""
-    # file_nodes = []
     # logger.info(f"Parsing DB Node...")
-    count = 0
-    # while True:
-    #    try:
-    # file_end = yield eof.optional()
-    # if file_end:
-    #    return file_nodes
-    #        count += 1
     node_tag = yield db_node_tag
     # logger.info(f"  Node Tag: {node_tag}")
-    # try:
-    #    file_end = yield eof  # .optional()
-    #    if file_end:
-    #        file_node = DB_Node(node_tag=node_tag, content=None)
-    #        file_nodes.append(file_node)
-    #        return file_nodes
-    # except:
-    #    continue
-
     content = yield regex(r"(?:[^\%]|%(?!%))+").map(str).optional()  # .until(eof)
-    # content = yield any_char.many().until(hidden_tag | eof).optional()
-
-    # logger.info(f"  Content: {content}")
-    # if not content:
-    # content = None
     # logger.info(f"  Content: {content}")
     file_node = DB_Node(node_tag=node_tag, content=content)
-    # logger.info(f"  File Node {count}: {file_node}")
-    # file_nodes.append(file_node)
-    # if content:
-    #    file_nodes[node_tag] = content
-    # else:
-    #    file_nodes[node_tag] = None
-    #    except:
-    #        break
-    # logger.info(f"  File Node: {file_node}")
-    # node_tag = yield db_node_tag
-    # content_str = yield regex(r"[^\%%]+").map(str).optional()
-    # if content_str:
-    #    content = content_str
-    # else:
-    #    content = None
     return file_node  # content
 
 

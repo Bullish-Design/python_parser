@@ -183,7 +183,7 @@ class DB_Node(DataType):
         #    content = f"{node_tag}\n{self.content}\n"
         # else:
         #    content = f"{node_tag} {self.content}"
-        file = f"---\n{node_tag}\n---\n{self.content}"
+        file = f"{node_tag}{self.content}"
         return file
 
     def from_file(self, filepath: Path):
