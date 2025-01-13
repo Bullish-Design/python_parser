@@ -48,9 +48,9 @@ from python_parser.src.models import (
     db_nodes,
 )
 
-from python_parser.logs.logger import get_logger
+# from python_parser.logs.logger import get_logger
 
-logger = get_logger(__name__)
+# logger = get_logger(__name__)
 
 
 # Datashape classes --------------------------------
@@ -72,9 +72,9 @@ class Parser(BaseModel, Generic[DataType]):
     def __init__(self, **data):
         super().__init__(**data)
 
-        logger.info(
-            f"INITIALIZING PYDANTIC PARSER: Type: {type(self)} - {self.data_type.__class__.__name__}\n\n{data}\n"
-        )
+        # logger.info(
+        #    f"INITIALIZING PYDANTIC PARSER: Type: {type(self)} - {self.data_type.__class__.__name__}\n\n{data}\n"
+        # )
         self.__class__.class_registry[self.data_type.__name__] = self
 
     @classmethod
