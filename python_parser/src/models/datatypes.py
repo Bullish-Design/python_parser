@@ -194,7 +194,9 @@ class DB_Node(DataType):
         # Generate a tag for the DB object
         id = shortuuid.uuid()
         git_version = "0.0.0"
-        return DB_Node_Tag(node_id=id, git_version=git_version, node_type=node_type)
+        self.node_tag = DB_Node_Tag(
+            node_id=id, git_version=git_version, node_type=node_type
+        )
 
 
 class Text(DataType):
