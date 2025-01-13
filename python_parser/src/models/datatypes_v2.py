@@ -184,7 +184,7 @@ class PythonFileParser(Parser[PythonFile]):
     Parser for Obsidian files.
     """
 
-    parser: parsy.Parser = basic_markdown_parser
+    parser: parsy.Parser = basic_python_parser
     data_type: Type[PythonFile] = Field(default=PythonFile)
 
 
