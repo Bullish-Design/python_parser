@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, date
 import parsy
 from pathlib import Path
-
+import shortuuid
 from dataclasses import dataclass
 
 from pydantic import BaseModel
@@ -160,7 +160,7 @@ class DB_Node(DataType):
     """
 
     # id: str
-    node_tag: DB_Node_Tag
+    node_tag: Optional[DB_Node_Tag]
     content: Optional[str]
     # node_parameters: Dict[
     #    str, Any
@@ -189,6 +189,12 @@ class DB_Node(DataType):
     def from_file(self, filepath: Path):
         # Parse a file into a DB object
         pass
+
+    def generate_tag(self, node_type: str):
+        # Generate a tag for the DB object
+        id = shortuuid.uuid()
+        git_version = "0.0.0"
+        return DB_Node_Tag(node_id=id, git_version=git_version, node_type=node_type)
 
 
 class Text(DataType):

@@ -169,6 +169,15 @@ Utilize LLM agents as semi-smart "text-expander" functionality.
  - [[Projects/python_parser/Daily/_index.md|_index]]
 """
 
+# Parser Classes --------------------------------
+"""
+# Or instantiate directly:
+file_parser = ParserBase[ObsidianFileBase](
+    parser=basic_markdown_parser,
+    data_type=ObsidianFileBase
+)
+"""
+
 
 class ObsidianFileParser(Parser[ObsidianFile]):
     """
@@ -186,15 +195,6 @@ class PythonFileParser(Parser[PythonFile]):
 
     parser: parsy.Parser = basic_python_parser
     data_type: Type[PythonFile] = Field(default=PythonFile)
-
-
-"""
-# Or instantiate directly:
-file_parser = ParserBase[ObsidianFileBase](
-    parser=basic_markdown_parser,
-    data_type=ObsidianFileBase
-)
-"""
 
 
 class HeaderParser(Parser[Header]):
@@ -234,6 +234,29 @@ database_parsers = [
 
 
 # Main
+def split_content(content: str):
+    """
+    Split the content at each header:
+    """
+    content_sections = content.split("\n#")
+    parsed_sections = []
+    for i, sec in enumerate(content_sections):
+        if i == 0:
+            parsed_sections.append(sec)
+        else:
+            parsed_sections.append(f"#{sec.strip('\n')}")
+
+    return parsed_sections
+
+
+def split_sections(content: str):
+    """
+    Split the content at each section:
+    """
+    return_content = content.split("\n\n")
+    return return_content
+
+
 def test_datatypes():
     # try:
     # file_parser = FileParser()

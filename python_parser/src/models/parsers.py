@@ -90,18 +90,18 @@ def db_node_tag():
     initial_text = yield regex(r"(?:[^\%]|%(?!%))+").map(str).optional()
     # logger.info(f"    Initial Text: {initial_text}")
     yield hidden_tag
-    node_id = yield regex(r"(?:[^\|%]|%(?!%))+").map(str) << pipe.optional()
-    node_id = node_id.strip()
+    node_id = yield regex(r"(?:[^\|%]|%(?!%))+").map(str) << pipe  # .optional()
+    # node_id = node_id.strip()
     # logger.info(f"    Node ID: {node_id}")
     git_version = (
-        yield regex(r"(?:[^\|%]|%(?!%))+").map(str).optional() << pipe.optional()
+        yield regex(r"(?:[^\|%]|%(?!%))+").map(str) << pipe  # .optional()
     )
-    if git_version:
-        git_version = git_version.strip()
+    # if git_version:
+    #    git_version = git_version.strip()
     # logger.info(f"    Git Version: {git_version}")
-    node_type = yield regex(r"(?:[^\%]|%(?!%))+").map(str).optional()
-    if node_type:
-        node_type = node_type.strip()
+    node_type = yield regex(r"(?:[^\%]|%(?!%))+").map(str)  # .optional()
+    # if node_type:
+    #    node_type = node_type.strip()
     # logger.info(f"    Node Type: {node_type}")
     yield hidden_tag
     return DB_Node_Tag(node_id=node_id, git_version=git_version, node_type=node_type)
@@ -110,8 +110,8 @@ def db_node_tag():
 @generate
 def section():
     """Parser for file sections"""
-    node_tag = yield db_node_tag
-    rest_of_section = yield content
+    node_tag = yield db_node_tag.optional()
+    rest_of_section = yield content.optional()
     section_node = DB_Node(node_tag=node_tag, content=rest_of_section)
     return section_node
 
