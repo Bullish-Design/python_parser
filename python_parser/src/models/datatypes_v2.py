@@ -29,6 +29,7 @@ from python_parser.src.models import (
     PythonFileBase,
     PythonFile,
     ObsidianFile,
+    Section,
     list_item,
     markdown_parser,
     basic_markdown_parser,
@@ -205,6 +206,15 @@ class HeaderParser(Parser[Header]):
     data_type: Type[Header] = Field(default=Header)
 
 
+class SectionParser(Parser[Section]):
+    """
+    Parser for sections.
+    """
+
+    parser: parsy.Parser = section
+    data_type: Type[Section] = Field(default=Section)
+
+
 class FrontMatterParser(Parser[FrontMatter]):
     """
     Parser for front matter.
@@ -219,6 +229,7 @@ database_parsers = [
     PythonFileParser(),
     HeaderParser(),
     FrontMatterParser(),
+    SectionParser(),
 ]
 
 

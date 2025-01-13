@@ -308,6 +308,18 @@ class Header(DataType):
         return f"{'#' * self.level} {self.content}"
 
 
+class Section(DataType):
+    """
+    Pydantic model for a section in a Markdown file.
+    """
+
+    header: Header
+    content: str
+
+    def to_string(self) -> str:
+        return f"{self.header.to_string()}\n{self.content}"
+
+
 class Callout(DataType):
     """
     Pydantic model for a callout in a Markdown file.
