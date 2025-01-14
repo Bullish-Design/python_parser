@@ -434,6 +434,15 @@ class ObsidianFile(DataType):
         with open(file_path, "w") as file:
             file.write(self.to_string())
 
+    def init_frontmatter(self, vault_path: str) -> None:
+        id = shortuuid.uuid()
+        frontmatter_content = {
+            "id": id,
+            "vault_path": vault_path,
+        }
+
+        self.frontmatter = FrontMatter(content=frontmatter_content)
+
 
 class PythonFrontMatter(DataType):
     """
