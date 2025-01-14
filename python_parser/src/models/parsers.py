@@ -54,6 +54,7 @@ from python_parser.src.models.datatypes import (
     ImageLink,
     Header,
     ObsidianFileBase,
+    ObsidianFile,
     CodeBlock,
     Callout,
     Paragraph,
@@ -342,7 +343,7 @@ def basic_markdown_parser():
     # yield frontmatter_delimiter.skip(newline)
     file_content = yield content.desc("Content")
 
-    return ObsidianFileBase(frontmatter=parsed_frontmatter, content=file_content)
+    return ObsidianFile(frontmatter=parsed_frontmatter, content=file_content)
 
 
 @generate
