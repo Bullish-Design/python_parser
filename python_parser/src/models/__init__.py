@@ -25,6 +25,7 @@ from python_parser.src.models.datatypes import (
     PythonFile,
     PythonFrontMatter,
     Section,
+    Section_Node,
 )
 from python_parser.src.models.parsers import (
     list_item,
@@ -81,6 +82,7 @@ __all__ = [
     "PythonFile",
     "PythonFrontMatter",
     "Section",
+    "Section_Node",
     # "Bold",
     # "Italic",
     "list_item",

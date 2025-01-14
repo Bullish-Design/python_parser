@@ -944,6 +944,14 @@ id: JCBMmSFJv3rVfzr3SUCvNj
 vault_path: Thoughts/Research/Web/arcprize.org /OpenAI o3 Breakthrough High Score on ARC-AGI-Pub.md
 ---
 %%Y6Jh5Z8yoERYMG3k2PW64J|0.0.0|ObsidianFile%%
+
+Here we're going to test out a bumch of random lines
+
+Just to see how it handles it
+
+And another one
+
+Last one is going to sit right above a header...
 # My Thoughts:
 
 

@@ -316,6 +316,21 @@ class Header(DataType):
         return f"{'#' * self.level} {self.content}"
 
 
+class Section_Node(DataType):
+    """
+    A Pydantic model that represents a section node in the AST. A section node consists of an id, content_type (which drives parsing), and content str
+    """
+
+    node_tag: Optional[DB_Node_Tag]
+    level: Optional[int]
+    label: Optional[str]
+    content: Optional[str]
+    # content_type: Optional[ContentType]  # For parsing to/generating from the database.
+
+    def to_string(self) -> str:
+        return f"{self.level * '#'} {self.node_tag.to_string()}{self.label}\n{self.content}"
+
+
 class Section(DataType):
     """
     Pydantic model for a section in a Markdown file.

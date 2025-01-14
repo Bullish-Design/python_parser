@@ -11,6 +11,7 @@ from parsy import (
     Parser,
     Result,
     line_info,
+    peek,
 )
 import yaml
 from typing import List, Union
@@ -61,6 +62,7 @@ from python_parser.src.models.datatypes import (
     DB_Node,
     PythonFrontMatter,
     PythonFileBase,
+    Section_Node,
 )
 
 # from python_parser.logs.logger import get_logger
@@ -105,15 +107,6 @@ def db_node_tag():
     # logger.info(f"    Node Type: {node_type}")
     yield hidden_tag
     return DB_Node_Tag(node_id=node_id, git_version=git_version, node_type=node_type)
-
-
-@generate
-def section():
-    """Parser for file sections"""
-    node_tag = yield db_node_tag.optional()
-    rest_of_section = yield content.optional()
-    section_node = DB_Node(node_tag=node_tag, content=rest_of_section)
-    return section_node
 
 
 @generate
@@ -385,6 +378,52 @@ def header():
 
 
 # header = header | Exception("Header parse error")
+
+
+@generate
+def section():
+    """Parser for file sections"""
+    # try:
+    parsed_header = yield peek(header).optional()
+    if parsed_header:
+        parsed_header = yield header
+        try:
+            header_node = yield db_node.parse(parsed_header.content)
+        except:
+            header_node = DB_Node(node_tag=None, content=parsed_header.content)
+            header_node.generate_tag("Section_Node")
+
+        # header_node = db_node.parse(parsed_header.content).optional()
+        # if header_node:
+        # return_header = Header(
+        #    level=parsed_header.level, content=header_node.to_string()
+        # )
+        # section_node = Section_Node(node_tag=header_node, header=parsed_header, )
+        # else:
+        #    gen_header = generate_header(
+        #    parsed_header = Header(
+        #        level=parsed_header.level, content=parsed_header.content
+        #    )
+        # except:
+    #    parsed_header = None
+    # print(f"  Parsed Header: {parsed_header}")
+
+    node_tag = yield db_node_tag.optional()
+    rest_of_section = yield content.optional()  # .many() << eof  # .optional()
+    if parsed_header:
+        section_node = Section_Node(
+            level=parsed_header.level,
+            node_tag=header_node.node_tag,
+            label=parsed_header.content,
+            content=rest_of_section,
+        )
+    else:
+        if node_tag:
+            section_node = DB_Node(node_tag=node_tag, content=rest_of_section)
+        else:
+            section_node = DB_Node(node_tag=node_tag, content=rest_of_section)
+            section_node.generate_tag("Content_Node")
+    return section_node
 
 
 # Code blocks
