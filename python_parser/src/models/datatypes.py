@@ -6,7 +6,7 @@ from pathlib import Path
 import shortuuid
 from dataclasses import dataclass
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 # Datashape classes --------------------------------
@@ -424,8 +424,8 @@ class ObsidianFile(DataType):
     Base Pydantic model for an Obsidian Markdown file.
     """
 
-    frontmatter: FrontMatter
-    content: str
+    frontmatter: Optional[FrontMatter] = Field(default=None)
+    content: Optional[str] = Field(default=None)
 
     def to_string(self) -> str:
         return f"{self.frontmatter.to_string()}\n{self.content}"
@@ -494,8 +494,8 @@ class PythonFile(DataType):
     Base Pydantic model for a Python file.
     """
 
-    frontmatter: PythonFrontMatter
-    content: str
+    frontmatter: Optional[PythonFrontMatter] = Field(default=None)
+    content: Optional[str] = Field(default=None)
 
     def to_string(self) -> str:
         return f"{self.frontmatter.to_string()}\n{self.content}"
