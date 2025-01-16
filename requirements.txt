@@ -1,8 +1,13 @@
 annotated-types==0.7.0
+blessed==1.20.0
 click==8.1.8
-dev-utils @ git+https://github.com/Bullish-Design/dev_utils.git@85074e06bf44f1d68a2d2de6b6e32dd79c6d6a9e
+colorama==0.4.6
+dev-utils @ git+https://github.com/Bullish-Design/dev_utils.git@6e2ca88d7554e205d40c8968263a35db00f9dc3f
+editor==1.6.6
 greenlet==3.1.1
 iniconfig==2.0.0
+inquirer==3.4.0
+libtmux==0.40.1
 markdown-it-py==3.0.0
 mdurl==0.1.2
 msgpack==1.1.0
@@ -10,18 +15,24 @@ packaging==24.2
 parsy==2.1
 pluggy==1.5.0
 py-obsidianmd==0.1.7
-pydantic==2.10.3
-pydantic-core==2.27.1
+pydantic==2.10.4
+pydantic-core==2.27.2
 pygments==2.19.0
 pynvim==0.5.2
 pytest==8.3.4
 python-dotenv==1.0.1
 python-frontmatter==1.1.0
 pyyaml==6.0.2
+readchar==4.2.1
 rich==13.9.4
+runs==1.2.2
 setuptools==75.6.0
 shellingham==1.5.4
 shortuuid==1.0.13
+six==1.17.0
+tmuxp==1.50.1
 tomlkit==0.13.2
 typer==0.15.1
 typing-extensions==4.12.2
+wcwidth==0.2.13
+xmod==1.8.1
